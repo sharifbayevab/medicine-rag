@@ -1,0 +1,14 @@
+fastapi>=0.110
+uvicorn>=0.27
+websockets>=12.0
+python-dotenv>=1.0
+openai>=1.12
+grpcio>=1.60
+protobuf>=4.25
+numpy>=1.26
+scipy>=1.12
+soundfile>=0.12
+SpeechRecognition>=3.10
+pydub>=0.25
+yandex-cloud-ml-sdk>=0.2
+google-genai>=1.0

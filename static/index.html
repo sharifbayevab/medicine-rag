@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medik Git - Voice Assistant</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        /* Header */
+        #header {
+            background: white;
+            padding: 10px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+            flex-shrink: 0;
+            gap: 8px;
+        }
+        #title { font-weight: 700; font-size: 1.15em; color: #1a73e8; white-space: nowrap; }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* Toggle switches */
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8em;
+            color: #555;
+            white-space: nowrap;
+        }
+        .toggle {
+            position: relative;
+            width: 36px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle .slider {
+            position: absolute;
+            inset: 0;
+            background: #ccc;
+            border-radius: 20px;
+            transition: background 0.2s;
+        }
+        .toggle .slider::before {
+            content: '';
+            position: absolute;
+            width: 16px; height: 16px;
+            left: 2px; bottom: 2px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        .toggle input:checked + .slider { background: #1a73e8; }
+        .toggle input:checked + .slider::before { transform: translateX(16px); }
+
+        select {
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 0.85em;
+        }
+
+        /* Chat */
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            max-width: 78%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            line-height: 1.5;
+            font-size: 0.93em;
+            word-wrap: break-word;
+        }
+        .user {
+            align-self: flex-end;
+            background: #1a73e8;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+        .assistant {
+            align-self: flex-start;
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+
+        /* Controls */
+        #controls {
+            padding: 16px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            border-top: 1px solid #e0e0e0;
+            flex-shrink: 0;
+        }
+
+        #status {
+            color: #888;
+            font-size: 0.82em;
+            min-height: 1.2em;
+            text-align: center;
+        }
+
+        /* Mic button */
+        #mic-button {
+            width: 68px; height: 68px;
+            border-radius: 50%;
+            background: #ea4335;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 3px 12px rgba(234,67,53,0.3);
+            transition: transform 0.12s, background 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        #mic-button:active { transform: scale(0.92); }
+        #mic-button svg { fill: white; width: 28px; height: 28px; }
+
+        /* States */
+        #mic-button.listening {
+            background: #d93025;
+            animation: pulse-listen 2s infinite;
+        }
+        #mic-button.live-connected {
+            background: #34a853;
+            box-shadow: 0 3px 12px rgba(52,168,83,0.3);
+        }
+        #mic-button.live-connected.listening {
+            background: #2d9249;
+            animation: pulse-green 2s infinite;
+        }
+        #mic-button.live-connected.agent-speaking {
+            background: #1a73e8;
+            box-shadow: 0 3px 12px rgba(26,115,232,0.3);
+            animation: pulse-blue 2s infinite;
+        }
+
+        @keyframes pulse-listen {
+            0%  { box-shadow: 0 0 0 0 rgba(217,48,37,0.5); }
+            70% { box-shadow: 0 0 0 16px rgba(217,48,37,0); }
+            100%{ box-shadow: 0 0 0 0 rgba(217,48,37,0); }
+        }
+        @keyframes pulse-green {
+            0%  { box-shadow: 0 0 0 0 rgba(52,168,83,0.5); }
+            70% { box-shadow: 0 0 0 16px rgba(52,168,83,0); }
+            100%{ box-shadow: 0 0 0 0 rgba(52,168,83,0); }
+        }
+        @keyframes pulse-blue {
+            0%  { box-shadow: 0 0 0 0 rgba(26,115,232,0.4); }
+            70% { box-shadow: 0 0 0 16px rgba(26,115,232,0); }
+            100%{ box-shadow: 0 0 0 0 rgba(26,115,232,0); }
+        }
+
+        /* Volume meter */
+        #volume-bar-wrap {
+            width: 100px; height: 4px;
+            background: #e8e8e8;
+            border-radius: 2px;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        #volume-bar-wrap.active { opacity: 1; }
+        #volume-bar {
+            height: 100%;
+            width: 0%;
+            background: #ea4335;
+            border-radius: 2px;
+            transition: width 0.06s;
+        }
+        #mic-button.live-connected ~ #volume-bar-wrap #volume-bar,
+        .live-vol { background: #34a853; }
+    </style>
+</head>
+<body>
+
+<div id="header">
+    <div id="title">Medik Git</div>
+    <div class="header-controls">
+        <div class="toggle-group">
+            <span>Живое</span>
+            <label class="toggle">
+                <input type="checkbox" id="toggle-live">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="toggle-group">
+            <span>Прерывать</span>
+            <label class="toggle">
+                <input type="checkbox" id="toggle-interrupt">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <select id="lang-select">
+            <option value="ru-RU">Русский</option>
+            <option value="uz-UZ">O'zbekcha</option>
+        </select>
+    </div>
+</div>
+
+<div id="chat-container">
+    <div class="message assistant">Привет! Я ваш медицинский гид. Нажмите на микрофон и задайте свой вопрос.</div>
+</div>
+
+<div id="controls">
+    <div id="volume-bar-wrap"><div id="volume-bar"></div></div>
+    <button id="mic-button">
+        <svg viewBox="0 0 24 24">
+            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+        </svg>
+    </button>
+    <div id="status"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  AudioWorklet: capture + noise gate + RMS
+// ═══════════════════════════════════════════
+const workletCode = `
+class PcmCaptureProcessor extends AudioWorkletProcessor {
+    constructor() {
+        super();
+        this._buf = [];
+        this._len = 0;
+        this._target = 4096;
+        // Adaptive noise floor
+        this._noiseFloor = 0.005;
+        this._noiseAlpha = 0.995; // slow adapt
+    }
+    process(inputs) {
+        const ch = inputs[0] && inputs[0][0];
+        if (!ch) return true;
+        this._buf.push(new Float32Array(ch));
+        this._len += ch.length;
+        if (this._len < this._target) return true;
+
+        // Merge buffers
+        const merged = new Float32Array(this._len);
+        let off = 0;
+        for (const b of this._buf) { merged.set(b, off); off += b.length; }
+        this._buf = [];
+        this._len = 0;
+
+        // RMS
+        let sum = 0;
+        for (let i = 0; i < merged.length; i++) sum += merged[i] * merged[i];
+        const rms = Math.sqrt(sum / merged.length);
+
+        // Adaptive noise floor: update only when quiet
+        if (rms < this._noiseFloor * 2.0) {
+            this._noiseFloor = this._noiseFloor * this._noiseAlpha + rms * (1 - this._noiseAlpha);
+        }
+        // Noise gate: speech = rms > noiseFloor * 3
+        const isSpeech = rms > Math.max(this._noiseFloor * 3.0, 0.006);
+
+        // Float32 → Int16
+        const pcm = new Int16Array(merged.length);
+        for (let i = 0; i < merged.length; i++) {
+            pcm[i] = Math.max(-1, Math.min(1, merged[i])) * 0x7FFF;
+        }
+
+        this.port.postMessage({ pcm: pcm.buffer, rms, isSpeech }, [pcm.buffer]);
+        return true;
+    }
+}
+registerProcessor('pcm-capture', PcmCaptureProcessor);
+`;
+const workletBlob = new Blob([workletCode], { type: 'application/javascript' });
+const workletUrl = URL.createObjectURL(workletBlob);
+
+// ═══════════════════════════════════════════
+//  DOM refs
+// ═══════════════════════════════════════════
+const micBtn       = document.getElementById('mic-button');
+const chatBox      = document.getElementById('chat-container');
+const statusDiv    = document.getElementById('status');
+const langSelect   = document.getElementById('lang-select');
+const volWrap      = document.getElementById('volume-bar-wrap');
+const volBar       = document.getElementById('volume-bar');
+const toggleLive   = document.getElementById('toggle-live');
+const toggleIntr   = document.getElementById('toggle-interrupt');
+
+// ═══════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════
+let ws = null;
+
+// Settings (synced to server)
+let liveMode = false;
+let allowInterrupt = false;
+
+// Audio capture
+let captureCtx = null;
+let captureStream = null;
+let workletNode = null;
+let hpFilter = null; // high-pass filter node
+
+// Mic state
+let micOpen = false;        // mic hardware is open
+let isListening = false;    // actively sending audio / STT running
+let sttRunning = false;     // STT session exists on server
+
+// VAD for live mode
+const SILENCE_MS = 1500;
+let silenceStart = 0;
+let hasSpeech = false;
+let speechStartSent = false; // have we sent start_speech for this utterance?
+
+// Playback
+let playCtx = null;
+let nextPlayTime = 0;
+let isAgentSpeaking = false;
+let playbackMuted = false; // true = игнорировать входящее аудио (после interrupt)
+
+// Chat
+let currentAssistantMsg = null;
+
+// Reconnect
+let reconnectN = 0;
+
+// ═══════════════════════════════════════════
+//  Settings sync
+// ═══════════════════════════════════════════
+function sendSettings() {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+            type: 'set_settings',
+            live_mode: liveMode,
+            allow_interrupt: allowInterrupt
+        }));
+    }
+}
+
+toggleLive.onchange = () => {
+    liveMode = toggleLive.checked;
+    sendSettings();
+    // If turning off live mode while mic is open — close mic
+    if (!liveMode && micOpen && !isListening) {
+        closeMic();
+    }
+};
+
+toggleIntr.onchange = () => {
+    allowInterrupt = toggleIntr.checked;
+    sendSettings();
+};
+
+langSelect.onchange = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'set_language', lang: langSelect.value }));
+    }
+};
+
+// ═══════════════════════════════════════════
+//  WebSocket
+// ═══════════════════════════════════════════
+function initWS() {
+    const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    ws = new WebSocket(`${proto}//${location.host}/ws/chat`);
+
+    ws.onopen = () => {
+        console.log('WS open');
+        reconnectN = 0;
+        // Send language + settings
+        ws.send(JSON.stringify({ type: 'set_language', lang: langSelect.value }));
+        sendSettings();
+    };
+
+    ws.onmessage = (ev) => {
+        if (typeof ev.data === 'string') {
+            const d = JSON.parse(ev.data);
+            handleServerMsg(d);
+        } else {
+            // Binary = TTS audio — игнорируем если muted (после interrupt)
+            if (playbackMuted) return;
+            isAgentSpeaking = true;
+            updateButtonState();
+            statusDiv.textContent = 'Говорю...';
+            playAudioChunk(ev.data);
+        }
+    };
+
+    ws.onclose = () => {
+        console.log('WS closed');
+        if (reconnectN < 10) {
+            const delay = Math.min(1000 * Math.pow(1.5, reconnectN), 10000);
+            reconnectN++;
+            setTimeout(initWS, delay);
+        }
+    };
+
+    ws.onerror = (e) => console.error('WS error', e);
+}
+
+function handleServerMsg(d) {
+    switch (d.type) {
+        case 'stt_partial':
+            statusDiv.textContent = d.text;
+            break;
+
+        case 'stt_final':
+            addMessage(d.text, 'user');
+            playbackMuted = false; // Разрешаем воспроизведение нового ответа
+            statusDiv.textContent = 'Думаю...';
+            break;
+
+        case 'llm_partial':
+            appendAssistant(d.text);
+            break;
+
+        case 'tts_end':
+            isAgentSpeaking = false;
+            playbackMuted = false; // Разрешаем воспроизведение для следующего ответа
+            currentAssistantMsg = null;
+            statusDiv.textContent = '';
+            updateButtonState();
+            break;
+
+        case 'interrupt':
+            // Server confirmed barge-in — остановить и заглушить
+            stopPlayback(); // ставит playbackMuted = true
+            isAgentSpeaking = false;
+            currentAssistantMsg = null;
+            updateButtonState();
+            break;
+
+        case 'ready_to_listen':
+            // Live mode: agent finished, start listening again
+            if (liveMode && micOpen) {
+                startListening();
+            }
+            break;
+    }
+}
+
+// ═══════════════════════════════════════════
+//  Chat UI
+// ═══════════════════════════════════════════
+function addMessage(text, role) {
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    div.textContent = text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+    if (role === 'assistant') currentAssistantMsg = div;
+}
+
+function appendAssistant(text) {
+    if (!currentAssistantMsg || currentAssistantMsg.classList.contains('user')) {
+        addMessage(text, 'assistant');
+    } else {
+        currentAssistantMsg.textContent += text;
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+}
+
+// ═══════════════════════════════════════════
+//  Audio playback
+// ═══════════════════════════════════════════
+function stopPlayback() {
+    nextPlayTime = 0;
+    playbackMuted = true; // Игнорировать оставшиеся чанки из буфера
+    if (playCtx) {
+        playCtx.close().catch(() => {});
+        playCtx = null;
+    }
+}
+
+async function playAudioChunk(data) {
+    try {
+        if (!playCtx) playCtx = new AudioContext({ sampleRate: 48000 });
+        let buf = await data.arrayBuffer();
+        if (buf.byteLength % 2 !== 0) buf = buf.slice(0, buf.byteLength - 1);
+        if (buf.byteLength === 0) return;
+
+        const samples = new Int16Array(buf);
+        const ab = playCtx.createBuffer(1, samples.length, 48000);
+        const ch = ab.getChannelData(0);
+        for (let i = 0; i < samples.length; i++) ch[i] = samples[i] / 32768.0;
+
+        const src = playCtx.createBufferSource();
+        src.buffer = ab;
+        src.connect(playCtx.destination);
+        const t = Math.max(playCtx.currentTime, nextPlayTime);
+        src.start(t);
+        nextPlayTime = t + ab.duration;
+    } catch (e) {
+        console.error('Playback error:', e);
+    }
+}
+
+// ═══════════════════════════════════════════
+//  Mic open / close (hardware)
+// ═══════════════════════════════════════════
+async function openMic() {
+    if (micOpen) return true;
+    try {
+        captureStream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+            }
+        });
+    } catch (e) {
+        statusDiv.textContent = 'Нет доступа к микрофону';
+        return false;
+    }
+
+    captureCtx = new AudioContext({ sampleRate: 16000 });
+    await captureCtx.audioWorklet.addModule(workletUrl);
+
+    const src = captureCtx.createMediaStreamSource(captureStream);
+
+    // High-pass filter at 85Hz — removes low hum, rumble, AC noise
+    hpFilter = captureCtx.createBiquadFilter();
+    hpFilter.type = 'highpass';
+    hpFilter.frequency.value = 85;
+    hpFilter.Q.value = 0.7;
+
+    workletNode = new AudioWorkletNode(captureCtx, 'pcm-capture');
+
+    workletNode.port.onmessage = (e) => onAudioChunk(e.data);
+
+    src.connect(hpFilter);
+    hpFilter.connect(workletNode);
+    workletNode.connect(captureCtx.destination);
+
+    micOpen = true;
+    volWrap.classList.add('active');
+    return true;
+}
+
+function closeMic() {
+    micOpen = false;
+    isListening = false;
+    sttRunning = false;
+    speechStartSent = false;
+    hasSpeech = false;
+    silenceStart = 0;
+    volWrap.classList.remove('active');
+    volBar.style.width = '0%';
+
+    if (captureStream) {
+        captureStream.getTracks().forEach(t => t.stop());
+        captureStream = null;
+    }
+    if (captureCtx) {
+        captureCtx.close().catch(() => {});
+        captureCtx = null;
+    }
+    workletNode = null;
+    hpFilter = null;
+    updateButtonState();
+}
+
+// ═══════════════════════════════════════════
+//  Listening state (STT active, sending audio)
+// ═══════════════════════════════════════════
+function startListening() {
+    if (!micOpen) return;
+    isListening = true;
+    hasSpeech = false;
+    silenceStart = 0;
+    speechStartSent = false;
+    sttRunning = false;
+
+    if (!liveMode) {
+        // Push-to-talk: start STT immediately
+        sendStartSpeech();
+    }
+    // Live mode: STT starts when speech detected (see onAudioChunk)
+
+    statusDiv.textContent = 'Слушаю...';
+    updateButtonState();
+}
+
+function stopListening() {
+    if (!isListening) return;
+    isListening = false;
+
+    if (sttRunning) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'end_speech' }));
+        }
+        sttRunning = false;
+    }
+    speechStartSent = false;
+    hasSpeech = false;
+    silenceStart = 0;
+
+    statusDiv.textContent = 'Обработка...';
+    updateButtonState();
+}
+
+function sendStartSpeech() {
+    if (speechStartSent) return;
+    speechStartSent = true;
+    sttRunning = true;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'start_speech' }));
+    }
+}
+
+// ═══════════════════════════════════════════
+//  Audio chunk handler (from AudioWorklet)
+// ═══════════════════════════════════════════
+function onAudioChunk({ pcm, rms, isSpeech }) {
+    if (!micOpen) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+    // Volume meter (always show when mic is open)
+    const pct = Math.min(rms / 0.12, 1.0) * 100;
+    volBar.style.width = pct + '%';
+
+    // ── Barge-in: речь обнаружена пока агент говорит ──
+    if (!isListening && isAgentSpeaking && allowInterrupt && liveMode && isSpeech) {
+        console.log('Barge-in: speech detected during agent response');
+        stopPlayback();
+        isAgentSpeaking = false;
+        currentAssistantMsg = null;
+        updateButtonState();
+        // Отправляем аудио на сервер — это тригернёт interrupt + start STT на бэкенде
+        ws.send(pcm);
+        // Переходим в режим слушания
+        isListening = true;
+        hasSpeech = true;
+        silenceStart = 0;
+        speechStartSent = false;
+        sttRunning = false;
+        statusDiv.textContent = 'Слушаю...';
+        updateButtonState();
+        return;
+    }
+
+    if (!isListening) return;
+
+    const now = Date.now();
+
+    if (liveMode) {
+        // ── Live mode VAD logic ──
+        if (isSpeech) {
+            hasSpeech = true;
+            silenceStart = 0;
+
+            // Start STT on first speech detection
+            if (!speechStartSent) {
+                sendStartSpeech();
+            }
+        } else if (hasSpeech) {
+            // Silence after speech
+            if (silenceStart === 0) silenceStart = now;
+            if (now - silenceStart > SILENCE_MS) {
+                // End of utterance
+                stopListening();
+                return;
+            }
+        }
+
+        // Only send audio to server if STT is running
+        if (sttRunning) {
+            ws.send(pcm);
+        }
+
+    } else {
+        // ── Push-to-talk mode ──
+        ws.send(pcm);
+
+        // VAD auto-stop
+        if (isSpeech) {
+            hasSpeech = true;
+            silenceStart = 0;
+        } else if (hasSpeech) {
+            if (silenceStart === 0) silenceStart = now;
+            if (now - silenceStart > SILENCE_MS) {
+                stopListening();
+                closeMic();
+                return;
+            }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════
+//  Button state machine
+// ═══════════════════════════════════════════
+function updateButtonState() {
+    micBtn.classList.remove('listening', 'live-connected', 'agent-speaking');
+
+    if (liveMode && micOpen) {
+        micBtn.classList.add('live-connected');
+        if (isAgentSpeaking) {
+            micBtn.classList.add('agent-speaking');
+        } else if (isListening) {
+            micBtn.classList.add('listening');
+        }
+    } else if (isListening) {
+        micBtn.classList.add('listening');
+    }
+}
+
+// ═══════════════════════════════════════════
+//  Button click handler
+// ═══════════════════════════════════════════
+micBtn.onclick = async () => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        initWS();
+        statusDiv.textContent = 'Подключение...';
+        return;
+    }
+
+    if (liveMode) {
+        // ── Live mode ──
+        if (!micOpen) {
+            // First click: open mic, start listening
+            const ok = await openMic();
+            if (!ok) return;
+            startListening();
+        } else if (isAgentSpeaking && allowInterrupt) {
+            // Agent is speaking + interrupt allowed → barge-in
+            stopPlayback();
+            isAgentSpeaking = false;
+            ws.send(JSON.stringify({ type: 'interrupt' }));
+            currentAssistantMsg = null;
+            startListening();
+        } else if (isAgentSpeaking && !allowInterrupt) {
+            // Agent speaking, no interrupt — do nothing
+            statusDiv.textContent = 'Дождитесь ответа...';
+        } else {
+            // Click again in live mode = disconnect
+            stopListening();
+            closeMic();
+            statusDiv.textContent = '';
+        }
+
+    } else {
+        // ── Push-to-talk mode ──
+        if (isListening) {
+            // Stop recording
+            stopListening();
+            closeMic();
+        } else {
+            // Interrupt if agent speaking + allowed
+            if (isAgentSpeaking && allowInterrupt) {
+                stopPlayback();
+                isAgentSpeaking = false;
+                ws.send(JSON.stringify({ type: 'interrupt' }));
+                currentAssistantMsg = null;
+            } else if (isAgentSpeaking && !allowInterrupt) {
+                statusDiv.textContent = 'Дождитесь ответа...';
+                return;
+            }
+            // Start recording
+            const ok = await openMic();
+            if (!ok) return;
+            startListening();
+        }
+    }
+};
+
+// ═══════════════════════════════════════════
+//  Init
+// ═══════════════════════════════════════════
+initWS();
+</script>
+
+</body>
+</html>
