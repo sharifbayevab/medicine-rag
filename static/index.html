@@ -1302,8 +1302,6 @@ let captureStream = null;
 let workletNode = null;
 let hpFilter = null;
 
-let Human = null;
-let human = null;
 let faceStream = null;
 let faceLoopActive = false;
 let lastFaceSeenAt = 0;
@@ -1313,8 +1311,16 @@ let lastFaceSnapshotAt = 0;
 let lastDetectedFaceCount = 0;
 let activeKnownPersonId = null;
 let pendingUnknownFace = false;
+let frameAnalyzeInFlight = false;
+const frameCaptureCanvas = document.createElement('canvas');
+const frameCaptureCtx = frameCaptureCanvas.getContext('2d', { willReadFrequently: false });
 const FACE_ABSENCE_MS = 1800;
-const FACE_SNAPSHOT_COOLDOWN_MS = 8000;
+const FACE_ANALYZE_INTERVAL_MS = 420;
+const FACE_COLLECT_MS = 2000;
+let faceIdentityLocked = false;
+let faceCollecting = false;
+let faceCollectStartedAt = 0;
+let faceCollectSamples = [];
 
 let micOpen = false;
 let isListening = false;
@@ -1473,41 +1479,6 @@ toggleHideChat.onchange = () => {
     applyHideChatMode();
 };
 
-function faceConfig() {
-    return {
-        backend: 'webgl',
-        modelBasePath: 'https://vladmandic.github.io/human-models/models/',
-        filter: { enabled: true, flip: false },
-        face: {
-            enabled: true,
-            detector: { rotation: false, maxDetected: 5, minConfidence: 0.5 },
-            mesh: { enabled: false },
-            iris: { enabled: false },
-            description: { enabled: false },
-            emotion: { enabled: false },
-            antispoof: { enabled: false },
-            liveness: { enabled: false }
-        },
-        body: { enabled: false },
-        hand: { enabled: false },
-        object: { enabled: false },
-        segmentation: { enabled: false },
-        gesture: { enabled: false },
-        debug: false
-    };
-}
-
-async function ensureHumanLoaded() {
-    if (!Human) {
-        const mod = await import('https://cdn.jsdelivr.net/npm/@vladmandic/human/dist/human.esm.js');
-        Human = mod.default;
-    }
-    if (!human) {
-        human = new Human(faceConfig());
-        await human.load();
-    }
-}
-
 function setFaceStatus(hasFace) {
     facePresent = hasFace;
     faceStatus.textContent = hasFace ? ui().facesFound(Math.max(lastDetectedFaceCount, 1)) : ui().noFace;
@@ -1518,7 +1489,6 @@ async function startFaceDetection() {
     if (faceLoopActive) return;
     try {
         await ensurePlaybackReady();
-        await ensureHumanLoaded();
         faceStream = await navigator.mediaDevices.getUserMedia({
             video: {
                 facingMode: 'user',
@@ -1543,7 +1513,12 @@ async function startFaceDetection() {
 
 async function stopFaceDetection() {
     faceLoopActive = false;
+    frameAnalyzeInFlight = false;
     lastDetectedFaceCount = 0;
+    faceIdentityLocked = false;
+    faceCollecting = false;
+    faceCollectStartedAt = 0;
+    faceCollectSamples = [];
     activeKnownPersonId = null;
     pendingUnknownFace = false;
     identifiedPerson = null;
@@ -1564,49 +1539,83 @@ async function stopFaceDetection() {
     }
 }
 
-function cropFaceDataUrl(box) {
-    if (!box) return null;
-    const [x, y, w, h] = box;
-    const padX = w * 0.03;
-    const padY = h * 0.04;
-    const sx = Math.max(0, Math.floor(x - padX));
-    const sy = Math.max(0, Math.floor(y - padY));
-    const sw = Math.min(faceVideo.videoWidth - sx, Math.floor(w + padX * 2));
-    const sh = Math.min(faceVideo.videoHeight - sy, Math.floor(h + padY * 2));
-    if (sw <= 0 || sh <= 0) return;
+function captureCurrentFrameDataUrl() {
+    const width = faceVideo.videoWidth || 640;
+    const height = faceVideo.videoHeight || 480;
+    if (!width || !height) return null;
 
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = sw;
-    tempCanvas.height = sh;
-    const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.translate(sw, 0);
-    tempCtx.scale(-1, 1);
-    tempCtx.drawImage(faceVideo, sx, sy, sw, sh, 0, 0, sw, sh);
-    return tempCanvas.toDataURL('image/jpeg', 0.92);
+    frameCaptureCanvas.width = width;
+    frameCaptureCanvas.height = height;
+    frameCaptureCtx.drawImage(faceVideo, 0, 0, width, height);
+    return frameCaptureCanvas.toDataURL('image/jpeg', 0.82);
 }
 
-async function identifyFacesOnServer(faces) {
-    if (!Array.isArray(faces) || faces.length === 0) return [];
-    const now = Date.now();
-    if (now - lastFaceSnapshotAt < FACE_SNAPSHOT_COOLDOWN_MS) return [];
-    lastFaceSnapshotAt = now;
+async function analyzeCurrentFrameOnServer() {
+    if (frameAnalyzeInFlight) return [];
+    const frame = captureCurrentFrameDataUrl();
+    if (!frame) return [];
 
-    const payloadFaces = faces.map((face) => ({ image: cropFaceDataUrl(face.box) })).filter((face) => face.image);
-    if (!payloadFaces.length) return [];
-
+    frameAnalyzeInFlight = true;
     try {
-        const resp = await fetch('/api/faces/identify', {
+        const resp = await fetch('/api/frame/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ faces: payloadFaces })
+            body: JSON.stringify({ frame, max_faces: 5 })
         });
         if (!resp.ok) return [];
         const data = await resp.json();
         return data.faces || [];
     } catch (e) {
-        console.error('Face identify error', e);
+        console.error('Frame analyze error', e);
         return [];
+    } finally {
+        frameAnalyzeInFlight = false;
     }
+}
+
+function resetFaceCollection() {
+    faceIdentityLocked = false;
+    faceCollecting = false;
+    faceCollectStartedAt = 0;
+    faceCollectSamples = [];
+}
+
+function addFaceCollectSample(result) {
+    if (!result) return;
+    faceCollectSamples.push(result);
+}
+
+function chooseCollectedFaceIdentity() {
+    if (!faceCollectSamples.length) return null;
+
+    const knownBuckets = new Map();
+    const unknownSamples = [];
+
+    for (const sample of faceCollectSamples) {
+        if (sample?.status === 'known' && sample.person?.person_id) {
+            const key = sample.person.person_id;
+            const bucket = knownBuckets.get(key) || { count: 0, bestScore: -1, bestSample: sample };
+            bucket.count += 1;
+            const score = Number.isFinite(sample.score) ? sample.score : -1;
+            if (score > bucket.bestScore) {
+                bucket.bestScore = score;
+                bucket.bestSample = sample;
+            }
+            knownBuckets.set(key, bucket);
+        } else if (sample?.status === 'unknown') {
+            unknownSamples.push(sample);
+        }
+    }
+
+    if (knownBuckets.size) {
+        return Array.from(knownBuckets.values())
+            .sort((a, b) => {
+                if (b.count !== a.count) return b.count - a.count;
+                return b.bestScore - a.bestScore;
+            })[0].bestSample;
+    }
+
+    return unknownSamples[unknownSamples.length - 1] || faceCollectSamples[faceCollectSamples.length - 1];
 }
 
 function notifyFaceIdentity(result) {
@@ -1653,9 +1662,6 @@ async function handleFaceAppeared() {
         const ok = await openMic();
         if (!ok) return;
     }
-    if (!isListening && !isAgentSpeaking) {
-        startListening();
-    }
 }
 
 async function ensurePlaybackReady() {
@@ -1673,12 +1679,17 @@ async function ensurePlaybackReady() {
 
 function handleFaceMissing() {
     if (!facePresent) return;
+    const hadLockedIdentity = faceIdentityLocked || !!identifiedPerson || pendingUnknownFace || !!activeKnownPersonId;
     setFaceStatus(false);
     faceGreetingSent = false;
+    resetFaceCollection();
     activeKnownPersonId = null;
     pendingUnknownFace = false;
     identifiedPerson = null;
     updatePersonCard();
+    if (hadLockedIdentity && ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'face_missing' }));
+    }
     if (micOpen) {
         stopListening();
         closeMic();
@@ -1692,12 +1703,9 @@ async function detectFaces() {
     faceCanvas.height = faceVideo.videoHeight || 480;
 
     try {
-        await human.detect(faceVideo);
-        const res = human.result || {};
-        const faces = (res.face || []).filter((item) => item?.box);
+        const faces = await analyzeCurrentFrameOnServer();
         const hasFace = faces.length > 0;
         const wasFacePresent = facePresent;
-        const prevFaceCount = lastDetectedFaceCount;
 
         faceCtx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
         if (hasFace) {
@@ -1709,16 +1717,28 @@ async function detectFaces() {
                 faceCtx.strokeStyle = '#34d399';
                 faceCtx.strokeRect(x, y, w, h);
             }
+            lastFaceSeenAt = Date.now();
+
             if (!wasFacePresent) {
-                const identified = await identifyFacesOnServer(faces);
-                notifyFaceIdentity(identified[0]);
-                await handleFaceAppeared();
-            } else if (faces.length !== prevFaceCount) {
-                const identified = await identifyFacesOnServer(faces);
-                notifyFaceIdentity(identified[0]);
-                lastFaceSeenAt = Date.now();
-            } else {
-                lastFaceSeenAt = Date.now();
+                resetFaceCollection();
+                faceCollecting = true;
+                faceCollectStartedAt = Date.now();
+            }
+
+            if (!faceIdentityLocked) {
+                addFaceCollectSample(faces[0]);
+
+                if (faceCollecting && Date.now() - faceCollectStartedAt >= FACE_COLLECT_MS) {
+                    const lockedIdentity = chooseCollectedFaceIdentity();
+                    if (lockedIdentity) {
+                        notifyFaceIdentity(lockedIdentity);
+                        await handleFaceAppeared();
+                        faceIdentityLocked = true;
+                    }
+                    faceCollecting = false;
+                    faceCollectStartedAt = 0;
+                    faceCollectSamples = [];
+                }
             }
         } else if (facePresent && Date.now() - lastFaceSeenAt > FACE_ABSENCE_MS) {
             lastDetectedFaceCount = 0;
@@ -1729,7 +1749,7 @@ async function detectFaces() {
     }
 
     if (faceLoopActive) {
-        setTimeout(() => requestAnimationFrame(detectFaces), 180);
+        setTimeout(() => requestAnimationFrame(detectFaces), FACE_ANALYZE_INTERVAL_MS);
     }
 }
 

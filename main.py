@@ -148,6 +148,48 @@ def get_face_encoder() -> FaceEncoder:
     return face_encoder
 
 
+def identify_face_embedding(embedding: list[float], snapshot_path: str | None = None) -> dict:
+    match = face_store.identify(embedding, threshold=FACE_MATCH_THRESHOLD)
+    if match:
+        comparisons = match.get("comparisons", [])
+        comparisons_to_log = comparisons if FACE_LOG_ALL_COMPARISONS else comparisons[:3]
+        for comparison in comparisons_to_log:
+            logger.info(
+                "Face compare item: threshold=%.2f candidate_id=%s full_name=%s score=%.4f",
+                FACE_MATCH_THRESHOLD,
+                comparison.get("person_id"),
+                comparison.get("full_name"),
+                comparison.get("score", 0.0),
+            )
+        logger.info(
+            "Face compare best: threshold=%.2f score=%.4f matched=%s person_id=%s full_name=%s snapshot=%s candidates=%s logged=%s all_logging=%s",
+            FACE_MATCH_THRESHOLD,
+            match.get("score", 0.0),
+            match.get("matched", False),
+            match.get("person_id"),
+            match.get("full_name"),
+            snapshot_path or "",
+            len(comparisons),
+            len(comparisons_to_log),
+            FACE_LOG_ALL_COMPARISONS,
+        )
+
+    if match and match.get("matched"):
+        if snapshot_path:
+            face_store.add_snapshot(match["person_id"], snapshot_path)
+        return {
+            "status": "known",
+            "snapshot_path": snapshot_path,
+            "person": match,
+        }
+
+    return {
+        "status": "unknown",
+        "snapshot_path": snapshot_path,
+        "embedding": embedding,
+    }
+
+
 def load_registered_faces() -> tuple[int, int]:
     if not REGISTER_FACES_JSON.exists():
         logger.info("Register faces bootstrap skipped: %s not found", REGISTER_FACES_JSON)
@@ -234,48 +276,42 @@ async def identify_faces(payload: dict):
         except Exception:
             continue
 
-        match = face_store.identify(embedding, threshold=FACE_MATCH_THRESHOLD)
-        if match:
-            comparisons = match.get("comparisons", [])
-            comparisons_to_log = comparisons if FACE_LOG_ALL_COMPARISONS else comparisons[:3]
-            for comparison in comparisons_to_log:
-                logger.info(
-                    "Face compare item: threshold=%.2f candidate_id=%s full_name=%s score=%.4f",
-                    FACE_MATCH_THRESHOLD,
-                    comparison.get("person_id"),
-                    comparison.get("full_name"),
-                    comparison.get("score", 0.0),
-                )
-            logger.info(
-                "Face compare best: threshold=%.2f score=%.4f matched=%s person_id=%s full_name=%s snapshot=%s candidates=%s logged=%s all_logging=%s",
-                FACE_MATCH_THRESHOLD,
-                match.get("score", 0.0),
-                match.get("matched", False),
-                match.get("person_id"),
-                match.get("full_name"),
-                snapshot_path,
-                len(comparisons),
-                len(comparisons_to_log),
-                FACE_LOG_ALL_COMPARISONS,
-            )
+        results.append(identify_face_embedding(embedding, snapshot_path))
 
-        if match and match.get("matched"):
-            face_store.add_snapshot(match["person_id"], snapshot_path)
-            results.append(
-                {
-                    "status": "known",
-                    "snapshot_path": snapshot_path,
-                    "person": match,
-                }
-            )
-        else:
-            results.append(
-                {
-                    "status": "unknown",
-                    "snapshot_path": snapshot_path,
-                    "embedding": embedding,
-                }
-            )
+    return JSONResponse({"faces": results})
+
+
+@app.post("/api/frame/analyze")
+async def analyze_frame(payload: dict):
+    frame = payload.get("frame")
+    max_faces = int(payload.get("max_faces", 5))
+    if not frame:
+        return JSONResponse({"faces": []})
+
+    try:
+        detected_faces = get_face_encoder().analyze_frame_base64(frame, max_faces=max_faces)
+    except Exception as exc:
+        logger.error("Failed to analyze frame: %s", exc)
+        return JSONResponse({"faces": []})
+
+    results = []
+    for face in detected_faces:
+        crop_base64 = face.get("crop_base64")
+        if not crop_base64:
+            continue
+
+        identified = identify_face_embedding(face["embedding"])
+        if identified["status"] == "unknown":
+            try:
+                snapshot_path = save_base64_image(crop_base64)
+            except Exception:
+                continue
+            identified["snapshot_path"] = snapshot_path
+            identified["embedding"] = face["embedding"]
+
+        identified["box"] = face["box"]
+        identified["det_score"] = face.get("det_score", 0.0)
+        results.append(identified)
 
     return JSONResponse({"faces": results})
 
@@ -310,6 +346,8 @@ async def websocket_endpoint(websocket: WebSocket):
     response_generation = 0
     current_person = None
     pending_registration = None
+    last_face_person_id = None
+    last_face_snapshot_path = None
 
     def start_stt():
         nonlocal stt_session, partial_stt_task
@@ -367,13 +405,9 @@ async def websocket_endpoint(websocket: WebSocket):
         is_responding = False
         logger.info("Response force-cancelled")
 
-    messages = [{"role": "system", "content": build_system_prompt(current_person, onboarding=False, current_lang=current_lang)}]
-
-    async def process_response(user_text: str, generation: int):
-        nonlocal is_responding, active_tts_session, active_response_task
-        is_responding = True
-        response_cancelled.clear()
-        messages[0] = {
+    def refresh_system_prompt(clear_history: bool = False):
+        nonlocal messages
+        system_message = {
             "role": "system",
             "content": build_system_prompt(
                 current_person,
@@ -381,6 +415,24 @@ async def websocket_endpoint(websocket: WebSocket):
                 current_lang=current_lang,
             ),
         }
+
+        if clear_history or not messages:
+            messages = [system_message]
+            return
+
+        if messages[0].get("role") == "system":
+            messages[0] = system_message
+        else:
+            messages.insert(0, system_message)
+
+    messages = []
+    refresh_system_prompt(clear_history=True)
+
+    async def process_response(user_text: str, generation: int):
+        nonlocal is_responding, active_tts_session, active_response_task
+        is_responding = True
+        response_cancelled.clear()
+        refresh_system_prompt(clear_history=False)
 
         tts_audio_queue = asyncio.Queue()
         tts_session = TtsStreamingSession(
@@ -510,6 +562,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         current_voice = "john"
                     else:
                         current_voice = "yulduz_ru"
+                    refresh_system_prompt(clear_history=False)
                     logger.info(f"Language set to {current_lang}, voice {current_voice}")
 
                 elif msg_type == "set_settings":
@@ -532,24 +585,41 @@ async def websocket_endpoint(websocket: WebSocket):
                         await websocket.send_json({"type": "interrupt"})
 
                 elif msg_type == "face_identity":
-                    current_person = msg.get("person")
-                    pending_registration = msg.get("pending_registration")
+                    incoming_person = msg.get("person")
+                    incoming_pending = msg.get("pending_registration")
+                    incoming_person_id = incoming_person.get("person_id") if incoming_person else None
+                    incoming_snapshot = incoming_pending.get("snapshot_path") if incoming_pending else None
+
+                    face_changed = (
+                        incoming_person_id != last_face_person_id
+                        or incoming_snapshot != last_face_snapshot_path
+                        or bool(incoming_pending) != bool(pending_registration)
+                    )
+
+                    current_person = incoming_person
+                    pending_registration = incoming_pending
+                    last_face_person_id = incoming_person_id
+                    last_face_snapshot_path = incoming_snapshot
+                    refresh_system_prompt(clear_history=True)
                     logger.info(
                         "Face identity received: person=%s pending=%s",
                         current_person.get("full_name") if current_person else None,
                         bool(pending_registration),
                     )
 
-                    if not is_responding:
+                    if face_changed and is_responding:
+                        force_cancel_response()
+                        await websocket.send_json({"type": "interrupt"})
+
+                    if face_changed and not is_responding:
                         if current_person:
                             greeting_prompt = (
-                                f"Перед тобой {current_person.get('first_name', '').strip()}. "
-                                "Поздоровайся как со знакомым человеком и предложи помощь."
+                                f"{current_person.get('first_name', '').strip()} is in front of you. "
+                                "Greet this person as someone you already know and briefly offer help."
                             )
                         elif pending_registration:
                             greeting_prompt = (
-                                "Перед тобой новый человек. Поздоровайся и скажи: "
-                                '"Давайте познакомимся, как вас зовут и какая у вас фамилия?"'
+                                "A new person is in front of you. Greet them and briefly ask for their first name and last name."
                             )
                         else:
                             greeting_prompt = None
@@ -560,6 +630,14 @@ async def websocket_endpoint(websocket: WebSocket):
                             active_response_task = asyncio.create_task(
                                 process_response(greeting_prompt, response_generation)
                             )
+
+                elif msg_type == "face_missing":
+                    current_person = None
+                    pending_registration = None
+                    last_face_person_id = None
+                    last_face_snapshot_path = None
+                    refresh_system_prompt(clear_history=True)
+                    logger.info("Face missing received: identity cleared and prompt reset")
 
                 elif msg_type == "end_speech":
                     if not stt_session:
@@ -584,6 +662,9 @@ async def websocket_endpoint(websocket: WebSocket):
                                 metadata={},
                             )
                             pending_registration = None
+                            last_face_person_id = current_person["person_id"]
+                            last_face_snapshot_path = None
+                            refresh_system_prompt(clear_history=True)
 
                             await websocket.send_json({"type": "stt_final", "text": final_text})
                             messages.append({"role": "user", "content": final_text})
