@@ -1,0 +1,26 @@
+{
+  "faces": [
+    {
+      "person_id": "person-alisher-001",
+      "file": "1.png",
+      "first_name": "Алишер",
+      "last_name": "Каримов",
+      "metadata": {
+        "phone": "+998901234567",
+        "notes": "Постоянный клиент, предпочитает общение на русском",
+        "language": "ru-RU",
+        "tags": ["vip", "returning"]
+      }
+    },
+    {
+      "person_id": "person-madina-002",
+      "file": "2.png",
+      "first_name": "Madina",
+      "last_name": "Yuldasheva",
+      "metadata": {
+        "language": "uz-UZ",
+        "notes": "Лучше обращаться по имени"
+      }
+    }
+  ]
+}

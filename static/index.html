@@ -1,248 +1,1080 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uz">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medik Git - Voice Assistant</title>
+    <title>Medical Assistant</title>
     <style>
+        :root {
+            --bg-top: #f6fbff;
+            --bg-bottom: #e6f2f7;
+            --panel: rgba(255, 255, 255, 0.78);
+            --panel-strong: rgba(255, 255, 255, 0.92);
+            --border: rgba(15, 23, 42, 0.08);
+            --text: #183042;
+            --muted: #678196;
+            --brand: #0c8f8a;
+            --brand-2: #1a73e8;
+            --danger: #e45858;
+            --success: #1b9c74;
+            --shadow: 0 18px 45px rgba(31, 41, 55, 0.12);
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #f0f2f5;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            height: 100dvh;
+            min-height: 100vh;
+            min-height: 100dvh;
+            font-family: "Segoe UI", "SF Pro Text", "Helvetica Neue", sans-serif;
+            color: var(--text);
+            overflow: hidden;
+            background:
+                radial-gradient(circle at top left, rgba(26, 115, 232, 0.10), transparent 28%),
+                radial-gradient(circle at top right, rgba(12, 143, 138, 0.12), transparent 30%),
+                linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
         }
 
-        /* Header */
+        body::before,
+        body::after {
+            content: "";
+            position: fixed;
+            inset: auto;
+            width: 280px;
+            height: 280px;
+            border-radius: 50%;
+            filter: blur(12px);
+            opacity: 0.28;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            top: -80px;
+            left: -60px;
+            background: rgba(26, 115, 232, 0.22);
+        }
+
+        body::after {
+            right: -60px;
+            bottom: -90px;
+            background: rgba(12, 143, 138, 0.24);
+        }
+
+        body.tablet-mode {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .app-shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            height: 100vh;
+            height: 100dvh;
+            min-height: 100vh;
+            min-height: 100dvh;
+            overflow: hidden;
+        }
+
+        body.tablet-mode .app-shell {
+            width: min(100%, 1088px);
+            height: min(calc(100dvh - 24px), 680px);
+            min-height: 0;
+            max-height: 680px;
+            padding: 14px;
+            border-radius: 34px;
+            background: rgba(255, 255, 255, 0.26);
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+        }
+
+        #header,
+        .panel,
+        #controls {
+            background: var(--panel);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
         #header {
-            background: white;
-            padding: 10px 16px;
+            border-radius: 26px;
+            padding: 18px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid #e0e0e0;
-            flex-shrink: 0;
-            gap: 8px;
+            gap: 16px;
+            flex-wrap: wrap;
         }
-        #title { font-weight: 700; font-size: 1.15em; color: #1a73e8; white-space: nowrap; }
+
+        .brand {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        #title {
+            font-size: clamp(1.35rem, 1.1rem + 1vw, 2rem);
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: var(--text);
+        }
+
+        #subtitle {
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
 
         .header-controls {
             display: flex;
             align-items: center;
-            gap: 12px;
+            justify-content: flex-end;
+            gap: 10px;
             flex-wrap: wrap;
         }
 
-        /* Toggle switches */
-        .toggle-group {
+        .toggle-group,
+        .lang-group {
             display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 0.8em;
-            color: #555;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(15, 23, 42, 0.05);
+            color: var(--muted);
+            font-size: 0.84rem;
             white-space: nowrap;
         }
+
         .toggle {
             position: relative;
-            width: 36px;
-            height: 20px;
+            width: 40px;
+            height: 22px;
             cursor: pointer;
         }
+
         .toggle input { opacity: 0; width: 0; height: 0; }
+
         .toggle .slider {
             position: absolute;
             inset: 0;
-            background: #ccc;
-            border-radius: 20px;
-            transition: background 0.2s;
+            background: rgba(148, 163, 184, 0.55);
+            border-radius: 999px;
+            transition: background 0.2s ease;
         }
+
         .toggle .slider::before {
-            content: '';
+            content: "";
             position: absolute;
-            width: 16px; height: 16px;
-            left: 2px; bottom: 2px;
-            background: white;
+            width: 18px;
+            height: 18px;
+            left: 2px;
+            top: 2px;
             border-radius: 50%;
-            transition: transform 0.2s;
+            background: #fff;
+            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.16);
+            transition: transform 0.2s ease;
         }
-        .toggle input:checked + .slider { background: #1a73e8; }
-        .toggle input:checked + .slider::before { transform: translateX(16px); }
+
+        .toggle input:checked + .slider {
+            background: linear-gradient(135deg, var(--brand), var(--brand-2));
+        }
+
+        .toggle input:checked + .slider::before {
+            transform: translateX(18px);
+        }
 
         select {
-            padding: 4px 8px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            font-size: 0.85em;
+            border: none;
+            outline: none;
+            background: transparent;
+            color: var(--text);
+            font-weight: 600;
+            font-size: 0.92rem;
         }
 
-        /* Chat */
-        #chat-container {
+        #main-layout {
             flex: 1;
-            overflow-y: auto;
+            display: grid;
+            grid-template-columns: 320px minmax(0, 1fr);
+            grid-template-rows: minmax(0, 1fr);
+            gap: 16px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .panel {
+            border-radius: 28px;
+            overflow: hidden;
+            min-height: 0;
+            height: 100%;
+        }
+
+        .panel-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+        }
+
+        .panel-title {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .panel-note {
+            color: var(--muted);
+            font-size: 0.8rem;
+        }
+
+        #camera-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #camera-widget {
             padding: 16px;
             display: flex;
             flex-direction: column;
+            gap: 12px;
+            height: 100%;
+        }
+
+        .person-card {
+            padding: 16px 18px;
+            border-radius: 24px;
+            background:
+                linear-gradient(145deg, rgba(10, 35, 66, 0.96), rgba(16, 73, 78, 0.92));
+            color: rgba(255, 255, 255, 0.95);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .person-label {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(191, 219, 254, 0.78);
+        }
+
+        .person-name {
+            font-size: 1.35rem;
+            font-weight: 800;
+            line-height: 1.15;
+        }
+
+        .person-meta {
+            color: rgba(226, 232, 240, 0.82);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .person-pill {
+            align-self: flex-start;
+            margin-top: 4px;
+            padding: 7px 11px;
+            border-radius: 999px;
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            background: rgba(148, 163, 184, 0.2);
+            color: rgba(226, 232, 240, 0.9);
+        }
+
+        .person-pill.known {
+            background: rgba(34, 197, 94, 0.18);
+            color: #bbf7d0;
+        }
+
+        .person-pill.pending {
+            background: rgba(250, 204, 21, 0.18);
+            color: #fde68a;
+        }
+
+        .voice-hero {
+            position: relative;
+            min-height: 174px;
+            border-radius: 24px;
+            overflow: hidden;
+            background:
+                radial-gradient(circle at 35% 35%, rgba(137, 207, 255, 0.35), transparent 28%),
+                radial-gradient(circle at 65% 70%, rgba(52, 211, 153, 0.25), transparent 35%),
+                linear-gradient(145deg, #0a2342, #0f3b4f 58%, #12526a);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+        }
+
+        .voice-hero::before,
+        .voice-hero::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            inset: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .voice-hero::before {
+            width: 124px;
+            height: 124px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.85), rgba(96, 165, 250, 0.42) 42%, rgba(96, 165, 250, 0.02) 70%);
+            filter: blur(2px);
+            animation: hero-breathe 3.8s ease-in-out infinite;
+        }
+
+        .voice-hero::after {
+            width: 220px;
+            height: 220px;
+            border: 1px solid rgba(186, 230, 253, 0.24);
+            animation: hero-ring 3.6s ease-out infinite;
+        }
+
+        .voice-ring {
+            position: absolute;
+            inset: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            border: 1px solid rgba(191, 219, 254, 0.18);
+        }
+
+        .voice-ring.one {
+            width: 166px;
+            height: 166px;
+            animation: hero-ring 3.2s ease-out infinite 0.25s;
+        }
+
+        .voice-ring.two {
+            width: 196px;
+            height: 196px;
+            animation: hero-ring 3.2s ease-out infinite 0.7s;
+        }
+
+        .voice-lines {
+            position: absolute;
+            left: 24px;
+            right: 24px;
+            bottom: 24px;
+            height: 42px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .voice-lines span {
+            width: 7px;
+            border-radius: 999px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(110, 231, 183, 0.65));
+            animation: hero-wave 1.2s ease-in-out infinite;
+            transform-origin: center bottom;
+        }
+
+        .voice-lines span:nth-child(1) { height: 16px; animation-delay: 0s; }
+        .voice-lines span:nth-child(2) { height: 28px; animation-delay: 0.08s; }
+        .voice-lines span:nth-child(3) { height: 34px; animation-delay: 0.16s; }
+        .voice-lines span:nth-child(4) { height: 20px; animation-delay: 0.24s; }
+        .voice-lines span:nth-child(5) { height: 38px; animation-delay: 0.32s; }
+        .voice-lines span:nth-child(6) { height: 24px; animation-delay: 0.4s; }
+        .voice-lines span:nth-child(7) { height: 30px; animation-delay: 0.48s; }
+
+        .camera-stage {
+            position: relative;
+            aspect-ratio: 4 / 3;
+            border-radius: 24px;
+            overflow: hidden;
+            background:
+                linear-gradient(160deg, rgba(9, 38, 68, 0.96), rgba(16, 73, 78, 0.92));
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+        }
+
+        .camera-stage::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.10));
+            pointer-events: none;
+        }
+
+        #face-video,
+        #face-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        #face-video {
+            position: absolute;
+            inset: 0;
+            object-fit: cover;
+            transform: scaleX(-1);
+            background: #07121d;
+        }
+
+        #face-canvas {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            transform: scaleX(-1);
+            background: transparent;
+        }
+
+        #camera-placeholder {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.88);
+            font-size: 0.94rem;
+            line-height: 1.45;
+            transition: opacity 0.25s ease;
+        }
+
+        #camera-widget.active #camera-placeholder {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .camera-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             gap: 10px;
         }
-        .message {
-            max-width: 78%;
-            padding: 10px 14px;
-            border-radius: 16px;
-            line-height: 1.5;
-            font-size: 0.93em;
-            word-wrap: break-word;
-        }
-        .user {
-            align-self: flex-end;
-            background: #1a73e8;
-            color: white;
-            border-bottom-right-radius: 4px;
-        }
-        .assistant {
-            align-self: flex-start;
-            background: white;
-            color: #333;
-            border-bottom-left-radius: 4px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+
+        .camera-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.16);
+            color: var(--muted);
+            font-weight: 700;
+            font-size: 0.8rem;
         }
 
-        /* Controls */
-        #controls {
-            padding: 16px;
-            background: white;
+        .camera-badge.detected {
+            background: rgba(27, 156, 116, 0.14);
+            color: var(--success);
+        }
+
+        #camera-help {
+            color: var(--muted);
+            font-size: 0.88rem;
+            line-height: 1.5;
+        }
+
+        #chat-panel {
             display: flex;
             flex-direction: column;
+            min-height: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #chat-container {
+            flex: 1;
+            min-height: 0;
+            max-height: 100%;
+            height: 100%;
+            overflow-y: auto;
+            padding: 18px 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            scroll-behavior: smooth;
+            overscroll-behavior: contain;
+        }
+
+        .message {
+            max-width: min(78%, 780px);
+            padding: 14px 16px;
+            border-radius: 22px;
+            line-height: 1.55;
+            font-size: 0.97rem;
+            word-wrap: break-word;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+        }
+
+        .assistant {
+            align-self: flex-start;
+            background: rgba(255, 255, 255, 0.94);
+            color: var(--text);
+            border-bottom-left-radius: 8px;
+        }
+
+        .user {
+            align-self: flex-end;
+            background: linear-gradient(135deg, var(--brand-2), #34a0ff);
+            color: #fff;
+            border-bottom-right-radius: 8px;
+        }
+
+        #controls {
+            border-radius: 30px;
+            padding: 18px 20px 22px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
             align-items: center;
-            gap: 8px;
-            border-top: 1px solid #e0e0e0;
-            flex-shrink: 0;
+            gap: 16px;
+        }
+
+        .controls-copy {
+            min-width: 0;
         }
 
         #status {
-            color: #888;
-            font-size: 0.82em;
-            min-height: 1.2em;
-            text-align: center;
+            min-height: 1.3em;
+            color: var(--text);
+            font-weight: 700;
+            font-size: 0.95rem;
         }
 
-        /* Mic button */
+        #status.muted {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        #mic-hint {
+            margin-top: 6px;
+            color: var(--muted);
+            font-size: 0.86rem;
+            line-height: 1.45;
+        }
+
+        .mic-center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-voice {
+            width: min(320px, 78vw);
+            min-height: 132px;
+            cursor: pointer;
+            transition: transform 0.18s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+            display: none;
+        }
+
+        .control-voice:hover {
+            transform: translateY(-1px);
+        }
+
+        .control-voice.active {
+            display: block;
+        }
+
+        .control-voice .voice-lines {
+            bottom: 28px;
+        }
+
+        .control-voice.listening {
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+                0 18px 36px rgba(27, 156, 116, 0.24);
+        }
+
+        .control-voice.speaking {
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+                0 18px 36px rgba(26, 115, 232, 0.24);
+        }
+
+        .control-voice.idle {
+            box-shadow:
+                inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+                0 18px 36px rgba(12, 143, 138, 0.18);
+        }
+
         #mic-button {
-            width: 68px; height: 68px;
-            border-radius: 50%;
-            background: #ea4335;
+            width: 94px;
+            height: 94px;
             border: none;
+            border-radius: 50%;
+            position: relative;
             cursor: pointer;
             display: flex;
-            justify-content: center;
             align-items: center;
-            box-shadow: 0 3px 12px rgba(234,67,53,0.3);
-            transition: transform 0.12s, background 0.2s, box-shadow 0.2s;
-            position: relative;
-        }
-        #mic-button:active { transform: scale(0.92); }
-        #mic-button svg { fill: white; width: 28px; height: 28px; }
-
-        /* States */
-        #mic-button.listening {
-            background: #d93025;
-            animation: pulse-listen 2s infinite;
-        }
-        #mic-button.live-connected {
-            background: #34a853;
-            box-shadow: 0 3px 12px rgba(52,168,83,0.3);
-        }
-        #mic-button.live-connected.listening {
-            background: #2d9249;
-            animation: pulse-green 2s infinite;
-        }
-        #mic-button.live-connected.agent-speaking {
-            background: #1a73e8;
-            box-shadow: 0 3px 12px rgba(26,115,232,0.3);
-            animation: pulse-blue 2s infinite;
-        }
-
-        @keyframes pulse-listen {
-            0%  { box-shadow: 0 0 0 0 rgba(217,48,37,0.5); }
-            70% { box-shadow: 0 0 0 16px rgba(217,48,37,0); }
-            100%{ box-shadow: 0 0 0 0 rgba(217,48,37,0); }
-        }
-        @keyframes pulse-green {
-            0%  { box-shadow: 0 0 0 0 rgba(52,168,83,0.5); }
-            70% { box-shadow: 0 0 0 16px rgba(52,168,83,0); }
-            100%{ box-shadow: 0 0 0 0 rgba(52,168,83,0); }
-        }
-        @keyframes pulse-blue {
-            0%  { box-shadow: 0 0 0 0 rgba(26,115,232,0.4); }
-            70% { box-shadow: 0 0 0 16px rgba(26,115,232,0); }
-            100%{ box-shadow: 0 0 0 0 rgba(26,115,232,0); }
-        }
-
-        /* Volume meter */
-        #volume-bar-wrap {
-            width: 100px; height: 4px;
-            background: #e8e8e8;
-            border-radius: 2px;
+            justify-content: center;
+            background: linear-gradient(160deg, #ff7d66, var(--danger));
+            box-shadow:
+                0 18px 30px rgba(228, 88, 88, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.22);
+            transition: transform 0.18s ease, box-shadow 0.2s ease, background 0.2s ease;
             overflow: hidden;
-            opacity: 0;
-            transition: opacity 0.3s;
         }
-        #volume-bar-wrap.active { opacity: 1; }
+
+        #mic-button.hidden {
+            display: none;
+        }
+
+        #mic-button:hover {
+            transform: translateY(-1px);
+        }
+
+        #mic-button:active {
+            transform: scale(0.96);
+        }
+
+        #mic-button svg {
+            width: 34px;
+            height: 34px;
+            fill: #fff;
+            position: relative;
+            z-index: 2;
+        }
+
+        .mic-glow {
+            position: absolute;
+            inset: 14px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 68%);
+            z-index: 1;
+        }
+
+        .mic-waves {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            z-index: 1;
+        }
+
+        .wave-bar {
+            width: 4px;
+            height: 18px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.8);
+            transform-origin: center bottom;
+        }
+
+        #mic-button.listening,
+        #mic-button.live-connected.listening {
+            background: linear-gradient(160deg, #1db67f, var(--success));
+            box-shadow:
+                0 18px 30px rgba(27, 156, 116, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        }
+
+        #mic-button.live-connected {
+            background: linear-gradient(160deg, #20b79b, var(--brand));
+            box-shadow:
+                0 18px 30px rgba(12, 143, 138, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        }
+
+        #mic-button.agent-speaking,
+        #mic-button.live-connected.agent-speaking {
+            background: linear-gradient(160deg, #4f8fff, var(--brand-2));
+            box-shadow:
+                0 18px 30px rgba(26, 115, 232, 0.28),
+                inset 0 1px 0 rgba(255, 255, 255, 0.22);
+        }
+
+        #mic-button.listening .mic-waves,
+        #mic-button.agent-speaking .mic-waves {
+            opacity: 1;
+        }
+
+        #mic-button.listening .wave-bar,
+        #mic-button.agent-speaking .wave-bar {
+            animation: wave-rise 0.95s ease-in-out infinite;
+        }
+
+        #mic-button .wave-bar:nth-child(1) { animation-delay: 0s; }
+        #mic-button .wave-bar:nth-child(2) { animation-delay: 0.08s; }
+        #mic-button .wave-bar:nth-child(3) { animation-delay: 0.16s; }
+        #mic-button .wave-bar:nth-child(4) { animation-delay: 0.24s; }
+        #mic-button .wave-bar:nth-child(5) { animation-delay: 0.32s; }
+
+        @keyframes wave-rise {
+            0%, 100% { transform: scaleY(0.45); opacity: 0.55; }
+            50% { transform: scaleY(1.55); opacity: 1; }
+        }
+
+        @keyframes hero-breathe {
+            0%, 100% { transform: translate(-50%, -50%) scale(0.92); opacity: 0.8; }
+            50% { transform: translate(-50%, -50%) scale(1.08); opacity: 1; }
+        }
+
+        @keyframes hero-ring {
+            0% { transform: translate(-50%, -50%) scale(0.82); opacity: 0.7; }
+            100% { transform: translate(-50%, -50%) scale(1.14); opacity: 0; }
+        }
+
+        @keyframes hero-wave {
+            0%, 100% { transform: scaleY(0.7); opacity: 0.55; }
+            50% { transform: scaleY(1.4); opacity: 1; }
+        }
+
+        #volume-bar-wrap {
+            justify-self: end;
+            width: 180px;
+            height: 10px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.20);
+            overflow: hidden;
+            opacity: 0.35;
+            transition: opacity 0.25s ease;
+        }
+
+        #volume-bar-wrap.active {
+            opacity: 1;
+        }
+
         #volume-bar {
             height: 100%;
             width: 0%;
-            background: #ea4335;
-            border-radius: 2px;
-            transition: width 0.06s;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #34d399, #1a73e8);
+            transition: width 0.08s linear;
         }
-        #mic-button.live-connected ~ #volume-bar-wrap #volume-bar,
-        .live-vol { background: #34a853; }
+
+        @media (max-width: 1040px) {
+            #main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            #camera-panel {
+                order: 2;
+            }
+
+            #chat-panel {
+                order: 1;
+                min-height: 52vh;
+            }
+        }
+
+        @media (max-width: 760px) {
+            .app-shell {
+                padding: 12px;
+                gap: 12px;
+            }
+
+            #header {
+                padding: 14px;
+                border-radius: 22px;
+            }
+
+            #controls {
+                grid-template-columns: 1fr;
+                justify-items: center;
+                text-align: center;
+            }
+
+        .controls-copy {
+            order: 1;
+        }
+
+        .mic-center {
+            order: 2;
+            width: 100%;
+        }
+
+            #volume-bar-wrap {
+                order: 3;
+                justify-self: center;
+                width: 100%;
+                max-width: 240px;
+            }
+
+            .message {
+                max-width: 90%;
+            }
+        }
     </style>
 </head>
 <body>
-
-<div id="header">
-    <div id="title">Medik Git</div>
-    <div class="header-controls">
-        <div class="toggle-group">
-            <span>Живое</span>
-            <label class="toggle">
-                <input type="checkbox" id="toggle-live">
-                <span class="slider"></span>
-            </label>
+<div class="app-shell">
+    <header id="header">
+        <div class="brand">
+            <div id="title">Medical Assistant</div>
+            <div id="subtitle"></div>
         </div>
-        <div class="toggle-group">
-            <span>Прерывать</span>
-            <label class="toggle">
-                <input type="checkbox" id="toggle-interrupt">
-                <span class="slider"></span>
-            </label>
+        <div class="header-controls">
+            <div class="toggle-group">
+                <span id="label-live"></span>
+                <label class="toggle">
+                    <input type="checkbox" id="toggle-live">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-group">
+                <span id="label-interrupt"></span>
+                <label class="toggle">
+                    <input type="checkbox" id="toggle-interrupt">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-group">
+                <span id="label-face-detect"></span>
+                <label class="toggle">
+                    <input type="checkbox" id="toggle-face-detect">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-group">
+                <span id="label-tablet-mode"></span>
+                <label class="toggle">
+                    <input type="checkbox" id="toggle-tablet-mode">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="lang-group">
+                <span id="label-language"></span>
+                <select id="lang-select">
+                    <option value="uz-UZ" selected>O'zbekcha</option>
+                    <option value="ru-RU">Русский</option>
+                    <option value="en-US">English</option>
+                </select>
+            </div>
         </div>
-        <select id="lang-select">
-            <option value="ru-RU">Русский</option>
-            <option value="uz-UZ">O'zbekcha</option>
-        </select>
-    </div>
-</div>
+    </header>
 
-<div id="chat-container">
-    <div class="message assistant">Привет! Я ваш медицинский гид. Нажмите на микрофон и задайте свой вопрос.</div>
-</div>
+    <main id="main-layout">
+        <aside id="camera-panel" class="panel">
+            <div class="panel-head">
+                <div>
+                    <div id="camera-title" class="panel-title"></div>
+                    <div id="camera-note" class="panel-note"></div>
+                </div>
+                <span id="face-status" class="camera-badge"></span>
+            </div>
+            <div id="camera-widget">
+                <div class="person-card">
+                    <div id="person-card-label" class="person-label"></div>
+                    <div id="person-card-name" class="person-name"></div>
+                    <div id="person-card-meta" class="person-meta"></div>
+                    <div id="person-card-status" class="person-pill"></div>
+                </div>
+                <div class="camera-stage">
+                    <video id="face-video" autoplay playsinline muted></video>
+                    <canvas id="face-canvas"></canvas>
+                    <div id="camera-placeholder"></div>
+                </div>
+                <div class="camera-status">
+                    <span id="camera-help"></span>
+                </div>
+            </div>
+        </aside>
 
-<div id="controls">
-    <div id="volume-bar-wrap"><div id="volume-bar"></div></div>
-    <button id="mic-button">
-        <svg viewBox="0 0 24 24">
-            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-        </svg>
-    </button>
-    <div id="status"></div>
+        <section id="chat-panel" class="panel">
+            <div class="panel-head">
+                <div>
+                    <div id="chat-title" class="panel-title"></div>
+                    <div id="chat-note" class="panel-note"></div>
+                </div>
+            </div>
+            <div id="chat-container"></div>
+        </section>
+    </main>
+
+    <footer id="controls">
+        <div class="controls-copy">
+            <div id="status" class="muted"></div>
+            <div id="mic-hint"></div>
+        </div>
+        <div class="mic-center">
+            <div id="live-voice-button" class="voice-hero control-voice idle" aria-label="Live voice control" role="button" tabindex="0">
+                <div class="voice-ring one"></div>
+                <div class="voice-ring two"></div>
+                <div class="voice-lines">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+            </div>
+            <button id="mic-button" aria-label="Microphone">
+                <div class="mic-glow"></div>
+                <div class="mic-waves" aria-hidden="true">
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                    <span class="wave-bar"></span>
+                </div>
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                </svg>
+            </button>
+        </div>
+        <div id="volume-bar-wrap"><div id="volume-bar"></div></div>
+    </footer>
 </div>
 
 <script>
+const UI_TEXT = {
+    'uz-UZ': {
+        subtitle: "Uch tilda ishlovchi ovozli yordamchi",
+        live: "Jonli",
+        interrupt: "Bo'lish",
+        faceDetect: "Yuz detekti",
+        tabletMode: "Planshet",
+        language: "Til",
+        cameraTitle: "Kamera",
+        cameraNote: "Yuz aniqlansa mikrofon avtomatik ishga tushadi",
+        cameraHelp: "Yuz ko‘ringanda tizim suhbatni o‘zi boshlaydi.",
+        cameraPlaceholder: "Yuzni aniqlash uchun kamerani yoqing. Kadrga kirganingizda tizim Siz bilan gaplashadi.",
+        personCardLabel: "Mehmon",
+        personUnknownName: "Hali aniqlanmadi",
+        personUnknownMeta: "Tizim yuzni aniqlaganda bu yerda F.I.Sh. ko‘rinadi.",
+        personKnownStatus: "Tanish mehmon",
+        personPendingStatus: "Tanishtirish kutilmoqda",
+        personIdleStatus: "Kuzatuv holati",
+        noFace: "Yuz topilmadi",
+        facesFound: (count) => `${count} ta yuz topildi`,
+        chatTitle: "Suhbat",
+        chatNote: "Qisqa va quvnoq tibbiy yordamchi",
+        micHint: "Suhbat tili tanlangan menyuga mos bo‘ladi.",
+        connecting: "Ulanmoqda...",
+        listening: "Tinglayapman...",
+        processing: "Qayta ishlayapman...",
+        thinking: "O‘ylayapman...",
+        speaking: "Gapiryapman...",
+        faceLiveForced: "Yuz detektida jonli rejim doim yoqilgan",
+        noMicAccess: "Mikrofonga ruxsat yo‘q",
+        noCameraAccess: "Kameraga ruxsat yo‘q",
+        waitFace: "Kadrda yuz kutilyapti...",
+        waitAnswer: "Javob tugashini kuting...",
+    },
+    'ru-RU': {
+        subtitle: "Голосовой ассистент на трёх языках",
+        live: "Живое",
+        interrupt: "Прерывать",
+        faceDetect: "Face detect",
+        tabletMode: "Планшет",
+        language: "Язык",
+        cameraTitle: "Камера",
+        cameraNote: "Микрофон включается автоматически при обнаружении лица",
+        cameraHelp: "Когда лицо появится в кадре, система сама начнёт разговор.",
+        cameraPlaceholder: "Включите камеру для детекции лица. Когда Вы появитесь в кадре, система сама заговорит с Вами.",
+        personCardLabel: "Посетитель",
+        personUnknownName: "Пока не определён",
+        personUnknownMeta: "Когда система распознает лицо, здесь появятся Ф.И.О.",
+        personKnownStatus: "Знакомый посетитель",
+        personPendingStatus: "Ждём знакомства",
+        personIdleStatus: "Режим наблюдения",
+        noFace: "Нет лица",
+        facesFound: (count) => `Найдено лиц: ${count}`,
+        chatTitle: "Диалог",
+        chatNote: "Короткий и бодрый медицинский ассистент",
+        micHint: "Язык разговора соответствует выбранному языку интерфейса.",
+        connecting: "Подключение...",
+        listening: "Слушаю...",
+        processing: "Обрабатываю...",
+        thinking: "Думаю...",
+        speaking: "Говорю...",
+        faceLiveForced: "В режиме face detect живой режим всегда включён",
+        noMicAccess: "Нет доступа к микрофону",
+        noCameraAccess: "Нет доступа к камере",
+        waitFace: "Жду лицо в кадре...",
+        waitAnswer: "Дождитесь ответа...",
+    },
+    'en-US': {
+        subtitle: "A three-language voice assistant",
+        live: "Live",
+        interrupt: "Interrupt",
+        faceDetect: "Face detect",
+        tabletMode: "Tablet",
+        language: "Language",
+        cameraTitle: "Camera",
+        cameraNote: "The microphone starts automatically when a face is detected",
+        cameraHelp: "When a face appears, the assistant starts the conversation automatically.",
+        cameraPlaceholder: "Turn on the camera for face detection. When You appear in frame, the assistant will greet You automatically.",
+        personCardLabel: "Visitor",
+        personUnknownName: "Not identified yet",
+        personUnknownMeta: "When the system recognizes a face, the full name will appear here.",
+        personKnownStatus: "Known visitor",
+        personPendingStatus: "Introduction pending",
+        personIdleStatus: "Standby mode",
+        noFace: "No face",
+        facesFound: (count) => `Faces found: ${count}`,
+        chatTitle: "Conversation",
+        chatNote: "A short, upbeat medical assistant",
+        micHint: "The spoken language follows the language selected in the menu.",
+        connecting: "Connecting...",
+        listening: "Listening...",
+        processing: "Processing...",
+        thinking: "Thinking...",
+        speaking: "Speaking...",
+        faceLiveForced: "Live mode stays on when face detect is enabled",
+        noMicAccess: "Microphone access is unavailable",
+        noCameraAccess: "Camera access is unavailable",
+        waitFace: "Waiting for a face in frame...",
+        waitAnswer: "Please wait for the reply...",
+    },
+};
+
+function ui() {
+    return UI_TEXT[langSelect.value] || UI_TEXT['uz-UZ'];
+}
+
+function setStatusKey(key) {
+    statusDiv.dataset.key = key;
+    statusDiv.textContent = ui()[key] || '';
+    statusDiv.classList.toggle('muted', !['listening', 'thinking', 'speaking', 'processing'].includes(key));
+}
+
+function setRawStatus(text = '') {
+    delete statusDiv.dataset.key;
+    statusDiv.textContent = text;
+    statusDiv.classList.toggle('muted', text === '');
+}
+
+function refreshStatusText() {
+    const key = statusDiv.dataset.key;
+    if (key) setStatusKey(key);
+}
+
+function updateStaticTexts() {
+    const currentUi = ui();
+    document.documentElement.lang = langSelect.value.startsWith('uz') ? 'uz' : (langSelect.value.startsWith('ru') ? 'ru' : 'en');
+    document.title = 'Medical Assistant';
+    document.getElementById('title').textContent = 'Medical Assistant';
+    document.getElementById('subtitle').textContent = currentUi.subtitle;
+    document.getElementById('label-live').textContent = currentUi.live;
+    document.getElementById('label-interrupt').textContent = currentUi.interrupt;
+    document.getElementById('label-face-detect').textContent = currentUi.faceDetect;
+    document.getElementById('label-tablet-mode').textContent = currentUi.tabletMode;
+    document.getElementById('label-language').textContent = currentUi.language;
+    document.getElementById('camera-title').textContent = currentUi.cameraTitle;
+    document.getElementById('camera-note').textContent = currentUi.cameraNote;
+    document.getElementById('camera-help').textContent = currentUi.cameraHelp;
+    document.getElementById('camera-placeholder').textContent = currentUi.cameraPlaceholder;
+    document.getElementById('chat-title').textContent = currentUi.chatTitle;
+    document.getElementById('chat-note').textContent = currentUi.chatNote;
+    document.getElementById('mic-hint').textContent = currentUi.micHint;
+    liveVoiceBtn.setAttribute('aria-label', currentUi.live);
+
+    setFaceStatus(facePresent);
+    updatePersonCard();
+    refreshStatusText();
+}
+
 // ═══════════════════════════════════════════
 //  AudioWorklet: capture + noise gate + RMS
 // ═══════════════════════════════════════════
@@ -253,9 +1085,8 @@ class PcmCaptureProcessor extends AudioWorkletProcessor {
         this._buf = [];
         this._len = 0;
         this._target = 4096;
-        // Adaptive noise floor
         this._noiseFloor = 0.005;
-        this._noiseAlpha = 0.995; // slow adapt
+        this._noiseAlpha = 0.995;
     }
     process(inputs) {
         const ch = inputs[0] && inputs[0][0];
@@ -264,26 +1095,21 @@ class PcmCaptureProcessor extends AudioWorkletProcessor {
         this._len += ch.length;
         if (this._len < this._target) return true;
 
-        // Merge buffers
         const merged = new Float32Array(this._len);
         let off = 0;
         for (const b of this._buf) { merged.set(b, off); off += b.length; }
         this._buf = [];
         this._len = 0;
 
-        // RMS
         let sum = 0;
         for (let i = 0; i < merged.length; i++) sum += merged[i] * merged[i];
         const rms = Math.sqrt(sum / merged.length);
 
-        // Adaptive noise floor: update only when quiet
         if (rms < this._noiseFloor * 2.0) {
             this._noiseFloor = this._noiseFloor * this._noiseAlpha + rms * (1 - this._noiseAlpha);
         }
-        // Noise gate: speech = rms > noiseFloor * 3
         const isSpeech = rms > Math.max(this._noiseFloor * 3.0, 0.006);
 
-        // Float32 → Int16
         const pcm = new Int16Array(merged.length);
         for (let i = 0; i < merged.length; i++) {
             pcm[i] = Math.max(-1, Math.min(1, merged[i])) * 0x7FFF;
@@ -301,52 +1127,144 @@ const workletUrl = URL.createObjectURL(workletBlob);
 // ═══════════════════════════════════════════
 //  DOM refs
 // ═══════════════════════════════════════════
-const micBtn       = document.getElementById('mic-button');
-const chatBox      = document.getElementById('chat-container');
-const statusDiv    = document.getElementById('status');
-const langSelect   = document.getElementById('lang-select');
-const volWrap      = document.getElementById('volume-bar-wrap');
-const volBar       = document.getElementById('volume-bar');
-const toggleLive   = document.getElementById('toggle-live');
-const toggleIntr   = document.getElementById('toggle-interrupt');
+const micBtn = document.getElementById('mic-button');
+const liveVoiceBtn = document.getElementById('live-voice-button');
+const chatBox = document.getElementById('chat-container');
+const statusDiv = document.getElementById('status');
+const langSelect = document.getElementById('lang-select');
+const volWrap = document.getElementById('volume-bar-wrap');
+const volBar = document.getElementById('volume-bar');
+const toggleLive = document.getElementById('toggle-live');
+const toggleIntr = document.getElementById('toggle-interrupt');
+const toggleFaceDetect = document.getElementById('toggle-face-detect');
+const toggleTabletMode = document.getElementById('toggle-tablet-mode');
+const cameraWidget = document.getElementById('camera-widget');
+const faceVideo = document.getElementById('face-video');
+const faceCanvas = document.getElementById('face-canvas');
+const faceStatus = document.getElementById('face-status');
+const faceCtx = faceCanvas.getContext('2d');
+const personCardLabel = document.getElementById('person-card-label');
+const personCardName = document.getElementById('person-card-name');
+const personCardMeta = document.getElementById('person-card-meta');
+const personCardStatus = document.getElementById('person-card-status');
+const liveVoiceBars = Array.from(liveVoiceBtn.querySelectorAll('.voice-lines span'));
+const micWaveBars = Array.from(micBtn.querySelectorAll('.wave-bar'));
 
 // ═══════════════════════════════════════════
 //  State
 // ═══════════════════════════════════════════
 let ws = null;
-
-// Settings (synced to server)
 let liveMode = false;
 let allowInterrupt = false;
+let faceDetectEnabled = false;
 
-// Audio capture
 let captureCtx = null;
 let captureStream = null;
 let workletNode = null;
-let hpFilter = null; // high-pass filter node
+let hpFilter = null;
 
-// Mic state
-let micOpen = false;        // mic hardware is open
-let isListening = false;    // actively sending audio / STT running
-let sttRunning = false;     // STT session exists on server
+let Human = null;
+let human = null;
+let faceStream = null;
+let faceLoopActive = false;
+let lastFaceSeenAt = 0;
+let facePresent = false;
+let faceGreetingSent = false;
+let lastFaceSnapshotAt = 0;
+let lastDetectedFaceCount = 0;
+let activeKnownPersonId = null;
+let pendingUnknownFace = false;
+const FACE_ABSENCE_MS = 1800;
+const FACE_SNAPSHOT_COOLDOWN_MS = 8000;
 
-// VAD for live mode
+let micOpen = false;
+let isListening = false;
+let sttRunning = false;
+
 const SILENCE_MS = 1500;
 let silenceStart = 0;
 let hasSpeech = false;
-let speechStartSent = false; // have we sent start_speech for this utterance?
+let speechStartSent = false;
 
-// Playback
 let playCtx = null;
 let nextPlayTime = 0;
 let isAgentSpeaking = false;
-let playbackMuted = false; // true = игнорировать входящее аудио (после interrupt)
-
-// Chat
+let playbackMuted = false;
+let activeResponseId = null;
 let currentAssistantMsg = null;
-
-// Reconnect
 let reconnectN = 0;
+let identifiedPerson = null;
+let voiceVisualLevel = 0;
+let voiceVisualFrame = null;
+let tabletMode = localStorage.getItem('tablet_mode') === 'true';
+
+function applyTabletMode() {
+    document.body.classList.toggle('tablet-mode', tabletMode);
+    toggleTabletMode.checked = tabletMode;
+}
+
+function animateVoiceVisualTo(targetLevel) {
+    const next = Math.max(0, Math.min(1, targetLevel));
+    if (voiceVisualFrame) cancelAnimationFrame(voiceVisualFrame);
+
+    const tick = () => {
+        const delta = next - voiceVisualLevel;
+        if (Math.abs(delta) < 0.02) {
+            voiceVisualLevel = next;
+        } else {
+            voiceVisualLevel += delta * 0.22;
+        }
+
+        liveVoiceBars.forEach((bar, index) => {
+            const factor = 0.55 + ((index % 4) * 0.12);
+            const scale = 0.72 + voiceVisualLevel * (0.7 + factor);
+            bar.style.transform = `scaleY(${scale.toFixed(3)})`;
+            bar.style.opacity = `${Math.min(1, 0.45 + voiceVisualLevel * 0.7)}`;
+        });
+
+        micWaveBars.forEach((bar, index) => {
+            const factor = 0.5 + (index * 0.15);
+            const scale = 0.7 + voiceVisualLevel * (0.9 + factor);
+            bar.style.transform = `scaleY(${scale.toFixed(3)})`;
+            bar.style.opacity = `${Math.min(1, 0.42 + voiceVisualLevel * 0.7)}`;
+        });
+
+        if (Math.abs(next - voiceVisualLevel) >= 0.02) {
+            voiceVisualFrame = requestAnimationFrame(tick);
+        } else {
+            voiceVisualFrame = null;
+        }
+    };
+
+    voiceVisualFrame = requestAnimationFrame(tick);
+}
+
+function updatePersonCard() {
+    const currentUi = ui();
+    personCardLabel.textContent = currentUi.personCardLabel;
+
+    if (identifiedPerson?.status === 'known' && identifiedPerson.person) {
+        const fullName = identifiedPerson.person.full_name || [identifiedPerson.person.first_name, identifiedPerson.person.last_name].filter(Boolean).join(' ');
+        personCardName.textContent = fullName || currentUi.personUnknownName;
+        personCardMeta.textContent = '';
+        personCardStatus.textContent = currentUi.personKnownStatus;
+        personCardStatus.className = 'person-pill known';
+        return;
+    }
+
+    if (identifiedPerson?.status === 'unknown') {
+        personCardName.textContent = currentUi.personUnknownName;
+        personCardMeta.textContent = currentUi.personUnknownMeta;
+        personCardStatus.textContent = currentUi.personPendingStatus;
+        personCardStatus.className = 'person-pill pending';
+        return;
+    }
+
+    personCardName.textContent = currentUi.personUnknownName;
+    personCardMeta.textContent = currentUi.personUnknownMeta;
+    personCardStatus.textContent = currentUi.personIdleStatus;
+    personCardStatus.className = 'person-pill';
+}
 
 // ═══════════════════════════════════════════
 //  Settings sync
@@ -362,9 +1280,13 @@ function sendSettings() {
 }
 
 toggleLive.onchange = () => {
+    if (faceDetectEnabled && !toggleLive.checked) {
+        toggleLive.checked = true;
+        setStatusKey('faceLiveForced');
+        return;
+    }
     liveMode = toggleLive.checked;
     sendSettings();
-    // If turning off live mode while mic is open — close mic
     if (!liveMode && micOpen && !isListening) {
         closeMic();
     }
@@ -376,10 +1298,289 @@ toggleIntr.onchange = () => {
 };
 
 langSelect.onchange = () => {
+    updateStaticTexts();
     if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: 'set_language', lang: langSelect.value }));
     }
 };
+
+toggleFaceDetect.onchange = async () => {
+    faceDetectEnabled = toggleFaceDetect.checked;
+    if (faceDetectEnabled) {
+        liveMode = true;
+        toggleLive.checked = true;
+        sendSettings();
+        await startFaceDetection();
+    } else {
+        await stopFaceDetection();
+    }
+};
+
+toggleTabletMode.onchange = () => {
+    tabletMode = toggleTabletMode.checked;
+    localStorage.setItem('tablet_mode', String(tabletMode));
+    applyTabletMode();
+};
+
+function faceConfig() {
+    return {
+        backend: 'webgl',
+        modelBasePath: 'https://vladmandic.github.io/human-models/models/',
+        filter: { enabled: true, flip: false },
+        face: {
+            enabled: true,
+            detector: { rotation: false, maxDetected: 5, minConfidence: 0.5 },
+            mesh: { enabled: false },
+            iris: { enabled: false },
+            description: { enabled: false },
+            emotion: { enabled: false },
+            antispoof: { enabled: false },
+            liveness: { enabled: false }
+        },
+        body: { enabled: false },
+        hand: { enabled: false },
+        object: { enabled: false },
+        segmentation: { enabled: false },
+        gesture: { enabled: false },
+        debug: false
+    };
+}
+
+async function ensureHumanLoaded() {
+    if (!Human) {
+        const mod = await import('https://cdn.jsdelivr.net/npm/@vladmandic/human/dist/human.esm.js');
+        Human = mod.default;
+    }
+    if (!human) {
+        human = new Human(faceConfig());
+        await human.load();
+    }
+}
+
+function setFaceStatus(hasFace) {
+    facePresent = hasFace;
+    faceStatus.textContent = hasFace ? ui().facesFound(Math.max(lastDetectedFaceCount, 1)) : ui().noFace;
+    faceStatus.classList.toggle('detected', hasFace);
+}
+
+async function startFaceDetection() {
+    if (faceLoopActive) return;
+    try {
+        await ensurePlaybackReady();
+        await ensureHumanLoaded();
+        faceStream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            },
+            audio: false
+        });
+        faceVideo.srcObject = faceStream;
+        await faceVideo.play();
+        cameraWidget.classList.add('active');
+        faceLoopActive = true;
+        faceGreetingSent = false;
+        detectFaces();
+    } catch (e) {
+        console.error('Face detection init error', e);
+        faceDetectEnabled = false;
+        toggleFaceDetect.checked = false;
+        setStatusKey('noCameraAccess');
+    }
+}
+
+async function stopFaceDetection() {
+    faceLoopActive = false;
+    lastDetectedFaceCount = 0;
+    activeKnownPersonId = null;
+    pendingUnknownFace = false;
+    identifiedPerson = null;
+    setFaceStatus(false);
+    updatePersonCard();
+    cameraWidget.classList.remove('active');
+
+    if (faceStream) {
+        faceStream.getTracks().forEach((track) => track.stop());
+        faceStream = null;
+    }
+    faceVideo.srcObject = null;
+    faceCtx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+
+    if (micOpen) {
+        stopListening();
+        closeMic();
+    }
+}
+
+function cropFaceDataUrl(box) {
+    if (!box) return null;
+    const [x, y, w, h] = box;
+    const padX = w * 0.03;
+    const padY = h * 0.04;
+    const sx = Math.max(0, Math.floor(x - padX));
+    const sy = Math.max(0, Math.floor(y - padY));
+    const sw = Math.min(faceVideo.videoWidth - sx, Math.floor(w + padX * 2));
+    const sh = Math.min(faceVideo.videoHeight - sy, Math.floor(h + padY * 2));
+    if (sw <= 0 || sh <= 0) return;
+
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = sw;
+    tempCanvas.height = sh;
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.translate(sw, 0);
+    tempCtx.scale(-1, 1);
+    tempCtx.drawImage(faceVideo, sx, sy, sw, sh, 0, 0, sw, sh);
+    return tempCanvas.toDataURL('image/jpeg', 0.92);
+}
+
+async function identifyFacesOnServer(faces) {
+    if (!Array.isArray(faces) || faces.length === 0) return [];
+    const now = Date.now();
+    if (now - lastFaceSnapshotAt < FACE_SNAPSHOT_COOLDOWN_MS) return [];
+    lastFaceSnapshotAt = now;
+
+    const payloadFaces = faces.map((face) => ({ image: cropFaceDataUrl(face.box) })).filter((face) => face.image);
+    if (!payloadFaces.length) return [];
+
+    try {
+        const resp = await fetch('/api/faces/identify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ faces: payloadFaces })
+        });
+        if (!resp.ok) return [];
+        const data = await resp.json();
+        return data.faces || [];
+    } catch (e) {
+        console.error('Face identify error', e);
+        return [];
+    }
+}
+
+function notifyFaceIdentity(result) {
+    if (!ws || ws.readyState !== WebSocket.OPEN || !result) return;
+
+    if (result.status === 'known' && result.person) {
+        if (activeKnownPersonId === result.person.person_id && !pendingUnknownFace) return;
+        activeKnownPersonId = result.person.person_id;
+        pendingUnknownFace = false;
+        identifiedPerson = result;
+        updatePersonCard();
+        ws.send(JSON.stringify({
+            type: 'face_identity',
+            person: result.person,
+            pending_registration: null
+        }));
+        return;
+    }
+
+    if (result.status === 'unknown') {
+        if (pendingUnknownFace) return;
+        activeKnownPersonId = null;
+        pendingUnknownFace = true;
+        identifiedPerson = { status: 'unknown' };
+        updatePersonCard();
+        ws.send(JSON.stringify({
+            type: 'face_identity',
+            person: null,
+            pending_registration: {
+                embedding: result.embedding,
+                snapshot_path: result.snapshot_path
+            }
+        }));
+    }
+}
+
+async function handleFaceAppeared() {
+    lastFaceSeenAt = Date.now();
+    if (!facePresent) {
+        setFaceStatus(true);
+    }
+
+    if (!micOpen) {
+        const ok = await openMic();
+        if (!ok) return;
+    }
+    if (!isListening && !isAgentSpeaking) {
+        startListening();
+    }
+}
+
+async function ensurePlaybackReady() {
+    try {
+        if (!playCtx || playCtx.state === 'closed') {
+            playCtx = new AudioContext({ sampleRate: 48000 });
+        }
+        if (playCtx.state === 'suspended') {
+            await playCtx.resume();
+        }
+    } catch (e) {
+        console.error('Playback unlock error', e);
+    }
+}
+
+function handleFaceMissing() {
+    if (!facePresent) return;
+    setFaceStatus(false);
+    faceGreetingSent = false;
+    activeKnownPersonId = null;
+    pendingUnknownFace = false;
+    identifiedPerson = null;
+    updatePersonCard();
+    if (micOpen) {
+        stopListening();
+        closeMic();
+    }
+}
+
+async function detectFaces() {
+    if (!faceLoopActive || !faceVideo.srcObject) return;
+
+    faceCanvas.width = faceVideo.videoWidth || 640;
+    faceCanvas.height = faceVideo.videoHeight || 480;
+
+    try {
+        await human.detect(faceVideo);
+        const res = human.result || {};
+        const faces = (res.face || []).filter((item) => item?.box);
+        const hasFace = faces.length > 0;
+        const wasFacePresent = facePresent;
+        const prevFaceCount = lastDetectedFaceCount;
+
+        faceCtx.clearRect(0, 0, faceCanvas.width, faceCanvas.height);
+        if (hasFace) {
+            lastDetectedFaceCount = faces.length;
+            setFaceStatus(true);
+            for (const item of faces) {
+                const [x, y, w, h] = item.box;
+                faceCtx.lineWidth = 3;
+                faceCtx.strokeStyle = '#34d399';
+                faceCtx.strokeRect(x, y, w, h);
+            }
+            if (!wasFacePresent) {
+                const identified = await identifyFacesOnServer(faces);
+                notifyFaceIdentity(identified[0]);
+                await handleFaceAppeared();
+            } else if (faces.length !== prevFaceCount) {
+                const identified = await identifyFacesOnServer(faces);
+                notifyFaceIdentity(identified[0]);
+                lastFaceSeenAt = Date.now();
+            } else {
+                lastFaceSeenAt = Date.now();
+            }
+        } else if (facePresent && Date.now() - lastFaceSeenAt > FACE_ABSENCE_MS) {
+            lastDetectedFaceCount = 0;
+            handleFaceMissing();
+        }
+    } catch (e) {
+        console.error('Face detect loop error', e);
+    }
+
+    if (faceLoopActive) {
+        setTimeout(() => requestAnimationFrame(detectFaces), 180);
+    }
+}
 
 // ═══════════════════════════════════════════
 //  WebSocket
@@ -389,29 +1590,17 @@ function initWS() {
     ws = new WebSocket(`${proto}//${location.host}/ws/chat`);
 
     ws.onopen = () => {
-        console.log('WS open');
         reconnectN = 0;
-        // Send language + settings
         ws.send(JSON.stringify({ type: 'set_language', lang: langSelect.value }));
         sendSettings();
     };
 
     ws.onmessage = (ev) => {
-        if (typeof ev.data === 'string') {
-            const d = JSON.parse(ev.data);
-            handleServerMsg(d);
-        } else {
-            // Binary = TTS audio — игнорируем если muted (после interrupt)
-            if (playbackMuted) return;
-            isAgentSpeaking = true;
-            updateButtonState();
-            statusDiv.textContent = 'Говорю...';
-            playAudioChunk(ev.data);
-        }
+        const d = JSON.parse(ev.data);
+        handleServerMsg(d);
     };
 
     ws.onclose = () => {
-        console.log('WS closed');
         if (reconnectN < 10) {
             const delay = Math.min(1000 * Math.pow(1.5, reconnectN), 10000);
             reconnectN++;
@@ -425,37 +1614,53 @@ function initWS() {
 function handleServerMsg(d) {
     switch (d.type) {
         case 'stt_partial':
-            statusDiv.textContent = d.text;
+            setRawStatus(d.text);
             break;
 
         case 'stt_final':
             addMessage(d.text, 'user');
-            playbackMuted = false; // Разрешаем воспроизведение нового ответа
-            statusDiv.textContent = 'Думаю...';
+            setStatusKey('thinking');
+            break;
+
+        case 'response_started':
+            activeResponseId = d.response_id;
+            playbackMuted = false;
             break;
 
         case 'llm_partial':
+            if (d.response_id !== activeResponseId) break;
             appendAssistant(d.text);
             break;
 
+        case 'tts_chunk':
+            if (playbackMuted) break;
+            if (d.response_id !== activeResponseId) break;
+            isAgentSpeaking = true;
+            updateButtonState();
+            setStatusKey('speaking');
+            playAudioChunk(d.audio);
+            break;
+
         case 'tts_end':
+            if (d.response_id !== activeResponseId) break;
             isAgentSpeaking = false;
-            playbackMuted = false; // Разрешаем воспроизведение для следующего ответа
             currentAssistantMsg = null;
-            statusDiv.textContent = '';
+            setRawStatus('');
+            animateVoiceVisualTo(micOpen ? 0.12 : 0);
             updateButtonState();
             break;
 
         case 'interrupt':
-            // Server confirmed barge-in — остановить и заглушить
-            stopPlayback(); // ставит playbackMuted = true
+            stopPlayback();
             isAgentSpeaking = false;
+            activeResponseId = null;
             currentAssistantMsg = null;
+            setRawStatus('');
+            animateVoiceVisualTo(micOpen ? 0.12 : 0);
             updateButtonState();
             break;
 
         case 'ready_to_listen':
-            // Live mode: agent finished, start listening again
             if (liveMode && micOpen) {
                 startListening();
             }
@@ -489,17 +1694,21 @@ function appendAssistant(text) {
 // ═══════════════════════════════════════════
 function stopPlayback() {
     nextPlayTime = 0;
-    playbackMuted = true; // Игнорировать оставшиеся чанки из буфера
+    playbackMuted = true;
+    animateVoiceVisualTo(0.12);
     if (playCtx) {
-        playCtx.close().catch(() => {});
-        playCtx = null;
+        playCtx.suspend().catch(() => {});
     }
 }
 
-async function playAudioChunk(data) {
+async function playAudioChunk(base64Audio) {
     try {
-        if (!playCtx) playCtx = new AudioContext({ sampleRate: 48000 });
-        let buf = await data.arrayBuffer();
+        await ensurePlaybackReady();
+        if (!playCtx) return;
+        const binary = atob(base64Audio);
+        let buf = new ArrayBuffer(binary.length);
+        const bytes = new Uint8Array(buf);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
         if (buf.byteLength % 2 !== 0) buf = buf.slice(0, buf.byteLength - 1);
         if (buf.byteLength === 0) return;
 
@@ -520,7 +1729,7 @@ async function playAudioChunk(data) {
 }
 
 // ═══════════════════════════════════════════
-//  Mic open / close (hardware)
+//  Mic open / close
 // ═══════════════════════════════════════════
 async function openMic() {
     if (micOpen) return true;
@@ -533,7 +1742,7 @@ async function openMic() {
             }
         });
     } catch (e) {
-        statusDiv.textContent = 'Нет доступа к микрофону';
+        setStatusKey('noMicAccess');
         return false;
     }
 
@@ -541,15 +1750,12 @@ async function openMic() {
     await captureCtx.audioWorklet.addModule(workletUrl);
 
     const src = captureCtx.createMediaStreamSource(captureStream);
-
-    // High-pass filter at 85Hz — removes low hum, rumble, AC noise
     hpFilter = captureCtx.createBiquadFilter();
     hpFilter.type = 'highpass';
     hpFilter.frequency.value = 85;
     hpFilter.Q.value = 0.7;
 
     workletNode = new AudioWorkletNode(captureCtx, 'pcm-capture');
-
     workletNode.port.onmessage = (e) => onAudioChunk(e.data);
 
     src.connect(hpFilter);
@@ -570,9 +1776,10 @@ function closeMic() {
     silenceStart = 0;
     volWrap.classList.remove('active');
     volBar.style.width = '0%';
+    animateVoiceVisualTo(0);
 
     if (captureStream) {
-        captureStream.getTracks().forEach(t => t.stop());
+        captureStream.getTracks().forEach((t) => t.stop());
         captureStream = null;
     }
     if (captureCtx) {
@@ -585,7 +1792,7 @@ function closeMic() {
 }
 
 // ═══════════════════════════════════════════
-//  Listening state (STT active, sending audio)
+//  Listening state
 // ═══════════════════════════════════════════
 function startListening() {
     if (!micOpen) return;
@@ -596,12 +1803,11 @@ function startListening() {
     sttRunning = false;
 
     if (!liveMode) {
-        // Push-to-talk: start STT immediately
         sendStartSpeech();
     }
-    // Live mode: STT starts when speech detected (see onAudioChunk)
 
-    statusDiv.textContent = 'Слушаю...';
+    setStatusKey('listening');
+    animateVoiceVisualTo(0.18);
     updateButtonState();
 }
 
@@ -619,7 +1825,8 @@ function stopListening() {
     hasSpeech = false;
     silenceStart = 0;
 
-    statusDiv.textContent = 'Обработка...';
+    setStatusKey('processing');
+    animateVoiceVisualTo(0.08);
     updateButtonState();
 }
 
@@ -633,32 +1840,28 @@ function sendStartSpeech() {
 }
 
 // ═══════════════════════════════════════════
-//  Audio chunk handler (from AudioWorklet)
+//  Audio chunk handler
 // ═══════════════════════════════════════════
 function onAudioChunk({ pcm, rms, isSpeech }) {
     if (!micOpen) return;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-    // Volume meter (always show when mic is open)
     const pct = Math.min(rms / 0.12, 1.0) * 100;
     volBar.style.width = pct + '%';
+    animateVoiceVisualTo(Math.min(rms / 0.08, 1.0));
 
-    // ── Barge-in: речь обнаружена пока агент говорит ──
     if (!isListening && isAgentSpeaking && allowInterrupt && liveMode && isSpeech) {
-        console.log('Barge-in: speech detected during agent response');
         stopPlayback();
         isAgentSpeaking = false;
         currentAssistantMsg = null;
         updateButtonState();
-        // Отправляем аудио на сервер — это тригернёт interrupt + start STT на бэкенде
         ws.send(pcm);
-        // Переходим в режим слушания
         isListening = true;
         hasSpeech = true;
         silenceStart = 0;
         speechStartSent = false;
         sttRunning = false;
-        statusDiv.textContent = 'Слушаю...';
+        setStatusKey('listening');
         updateButtonState();
         return;
     }
@@ -668,35 +1871,21 @@ function onAudioChunk({ pcm, rms, isSpeech }) {
     const now = Date.now();
 
     if (liveMode) {
-        // ── Live mode VAD logic ──
         if (isSpeech) {
             hasSpeech = true;
             silenceStart = 0;
-
-            // Start STT on first speech detection
-            if (!speechStartSent) {
-                sendStartSpeech();
-            }
+            if (!speechStartSent) sendStartSpeech();
         } else if (hasSpeech) {
-            // Silence after speech
             if (silenceStart === 0) silenceStart = now;
             if (now - silenceStart > SILENCE_MS) {
-                // End of utterance
                 stopListening();
                 return;
             }
         }
 
-        // Only send audio to server if STT is running
-        if (sttRunning) {
-            ws.send(pcm);
-        }
-
+        if (sttRunning) ws.send(pcm);
     } else {
-        // ── Push-to-talk mode ──
         ws.send(pcm);
-
-        // VAD auto-stop
         if (isSpeech) {
             hasSpeech = true;
             silenceStart = 0;
@@ -716,6 +1905,21 @@ function onAudioChunk({ pcm, rms, isSpeech }) {
 // ═══════════════════════════════════════════
 function updateButtonState() {
     micBtn.classList.remove('listening', 'live-connected', 'agent-speaking');
+    micBtn.classList.remove('hidden');
+    liveVoiceBtn.classList.remove('active', 'idle', 'listening', 'speaking');
+
+    if (liveMode) {
+        micBtn.classList.add('hidden');
+        liveVoiceBtn.classList.add('active');
+        if (isAgentSpeaking) {
+            liveVoiceBtn.classList.add('speaking');
+        } else if (isListening || micOpen) {
+            liveVoiceBtn.classList.add('listening');
+        } else {
+            liveVoiceBtn.classList.add('idle');
+        }
+        return;
+    }
 
     if (liveMode && micOpen) {
         micBtn.classList.add('live-connected');
@@ -732,67 +1936,72 @@ function updateButtonState() {
 // ═══════════════════════════════════════════
 //  Button click handler
 // ═══════════════════════════════════════════
-micBtn.onclick = async () => {
+async function handleMicControlClick() {
     if (!ws || ws.readyState !== WebSocket.OPEN) {
         initWS();
-        statusDiv.textContent = 'Подключение...';
+        setStatusKey('connecting');
+        return;
+    }
+
+    if (faceDetectEnabled && !facePresent) {
+        setStatusKey('waitFace');
         return;
     }
 
     if (liveMode) {
-        // ── Live mode ──
         if (!micOpen) {
-            // First click: open mic, start listening
             const ok = await openMic();
             if (!ok) return;
             startListening();
         } else if (isAgentSpeaking && allowInterrupt) {
-            // Agent is speaking + interrupt allowed → barge-in
             stopPlayback();
             isAgentSpeaking = false;
             ws.send(JSON.stringify({ type: 'interrupt' }));
             currentAssistantMsg = null;
             startListening();
         } else if (isAgentSpeaking && !allowInterrupt) {
-            // Agent speaking, no interrupt — do nothing
-            statusDiv.textContent = 'Дождитесь ответа...';
+            setStatusKey('waitAnswer');
         } else {
-            // Click again in live mode = disconnect
             stopListening();
             closeMic();
-            statusDiv.textContent = '';
+            setRawStatus('');
         }
-
     } else {
-        // ── Push-to-talk mode ──
         if (isListening) {
-            // Stop recording
             stopListening();
             closeMic();
         } else {
-            // Interrupt if agent speaking + allowed
             if (isAgentSpeaking && allowInterrupt) {
                 stopPlayback();
                 isAgentSpeaking = false;
                 ws.send(JSON.stringify({ type: 'interrupt' }));
                 currentAssistantMsg = null;
             } else if (isAgentSpeaking && !allowInterrupt) {
-                statusDiv.textContent = 'Дождитесь ответа...';
+                setStatusKey('waitAnswer');
                 return;
             }
-            // Start recording
             const ok = await openMic();
             if (!ok) return;
             startListening();
         }
     }
+}
+
+micBtn.onclick = handleMicControlClick;
+liveVoiceBtn.onclick = handleMicControlClick;
+liveVoiceBtn.onkeydown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        handleMicControlClick();
+    }
 };
 
-// ═══════════════════════════════════════════
-//  Init
-// ═══════════════════════════════════════════
+updateStaticTexts();
+applyTabletMode();
+setFaceStatus(false);
+updatePersonCard();
+updateButtonState();
 initWS();
 </script>
-
 </body>
 </html>

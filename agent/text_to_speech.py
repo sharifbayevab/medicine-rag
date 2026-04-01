@@ -582,11 +582,14 @@ class TtsStreamingSession:
         self._audio_queue = audio_queue
         self._text_queue: _queue.Queue = _queue.Queue()
         self._task: asyncio.Task | None = None
+        self._drain_task: asyncio.Task | None = None
+        self._thread_audio_queue: _queue.Queue | None = None
         self._voice = voice
 
     def start(self):
         """Запускает gRPC синтез в фоновом потоке."""
         thread_audio_queue = _queue.Queue()
+        self._thread_audio_queue = thread_audio_queue
         self._task = self._loop.create_task(
             asyncio.to_thread(
                 self._synth.synthesize_streaming,
@@ -598,7 +601,7 @@ class TtsStreamingSession:
             )
         )
         # Запускаем задачу для перекладывания аудио чанков из thread queue в async queue
-        asyncio.create_task(self._drain_audio(thread_audio_queue))
+        self._drain_task = asyncio.create_task(self._drain_audio(thread_audio_queue))
 
     async def _drain_audio(self, thread_queue: _queue.Queue):
         """Перекладывает аудио чанки из thread queue в async queue."""
@@ -618,6 +621,27 @@ class TtsStreamingSession:
         self._text_queue.put(None)
         if self._task:
             await self._task
+        if self._drain_task:
+            await self._drain_task
+
+    def cancel(self):
+        """Прерывает потоковый синтез и останавливает перенос аудио-чанков."""
+        try:
+            self._text_queue.put_nowait(None)
+        except Exception:
+            pass
+
+        if self._thread_audio_queue is not None:
+            try:
+                self._thread_audio_queue.put_nowait(None)
+            except Exception:
+                pass
+
+        if self._task and not self._task.done():
+            self._task.cancel()
+
+        if self._drain_task and not self._drain_task.done():
+            self._drain_task.cancel()
 
 
 # if __name__ == "__main__":

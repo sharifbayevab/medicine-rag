@@ -1,4 +1,5 @@
 import os
+import json
 from openai import AsyncOpenAI
 from dotenv import load_dotenv
 
@@ -20,3 +21,30 @@ class OpenAIClient:
                 content = chunk.choices[0].delta.content
                 if content:
                     yield content
+
+    async def extract_person_name(self, text: str) -> dict | None:
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "Извлеки имя и фамилию человека из фразы. "
+                        "Верни только JSON вида "
+                        '{"first_name":"...","last_name":"...","is_confident":true}. '
+                        "Если фамилии нет, верни пустую строку. "
+                        "Если не уверен, верни is_confident=false."
+                    ),
+                },
+                {"role": "user", "content": text},
+            ],
+            temperature=0,
+        )
+        content = response.choices[0].message.content or "{}"
+        try:
+            data = json.loads(content)
+        except Exception:
+            return None
+        if not data.get("first_name"):
+            return None
+        return data
