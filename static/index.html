@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Medical Assistant</title>
+    <title>UzMAX</title>
     <style>
         :root {
             --bg-top: #f6fbff;
@@ -93,6 +93,33 @@
             background: rgba(255, 255, 255, 0.26);
             border: 1px solid rgba(255, 255, 255, 0.28);
             box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+        }
+
+        body.tablet-mode #header {
+            padding: 10px 14px;
+            border-radius: 24px;
+        }
+
+        body.tablet-mode #title {
+            font-size: 1.12rem;
+        }
+
+        body.tablet-mode #subtitle {
+            display: none;
+        }
+
+        body.tablet-mode .header-controls {
+            gap: 8px;
+        }
+
+        body.tablet-mode .toggle-group,
+        body.tablet-mode .lang-group {
+            padding: 8px 10px;
+            font-size: 0.75rem;
+        }
+
+        body.tablet-mode #camera-panel .panel-head {
+            display: none;
         }
 
         #header,
@@ -205,7 +232,7 @@
         #main-layout {
             flex: 1;
             display: grid;
-            grid-template-columns: 320px minmax(0, 1fr);
+            grid-template-columns: 320px minmax(0, 1fr) 320px;
             grid-template-rows: minmax(0, 1fr);
             gap: 16px;
             min-height: 0;
@@ -247,47 +274,47 @@
             padding: 16px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 10px;
             height: 100%;
         }
 
         .person-card {
-            padding: 16px 18px;
-            border-radius: 24px;
+            padding: 10px 12px;
+            border-radius: 18px;
             background:
                 linear-gradient(145deg, rgba(10, 35, 66, 0.96), rgba(16, 73, 78, 0.92));
             color: rgba(255, 255, 255, 0.95);
             box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 4px;
         }
 
         .person-label {
-            font-size: 0.78rem;
+            font-size: 0.66rem;
             text-transform: uppercase;
             letter-spacing: 0.12em;
             color: rgba(191, 219, 254, 0.78);
         }
 
         .person-name {
-            font-size: 1.35rem;
+            font-size: 1rem;
             font-weight: 800;
-            line-height: 1.15;
+            line-height: 1.1;
         }
 
         .person-meta {
             color: rgba(226, 232, 240, 0.82);
-            font-size: 0.9rem;
-            line-height: 1.5;
+            font-size: 0.74rem;
+            line-height: 1.35;
         }
 
         .person-pill {
             align-self: flex-start;
-            margin-top: 4px;
-            padding: 7px 11px;
+            margin-top: 2px;
+            padding: 5px 8px;
             border-radius: 999px;
-            font-size: 0.76rem;
+            font-size: 0.65rem;
             font-weight: 800;
             letter-spacing: 0.04em;
             background: rgba(148, 163, 184, 0.2);
@@ -390,7 +417,8 @@
 
         .camera-stage {
             position: relative;
-            aspect-ratio: 4 / 3;
+            flex: 1;
+            min-height: 0;
             border-radius: 24px;
             overflow: hidden;
             background:
@@ -453,6 +481,7 @@
             justify-content: space-between;
             align-items: center;
             gap: 10px;
+            min-height: 20px;
         }
 
         .camera-badge {
@@ -474,11 +503,19 @@
 
         #camera-help {
             color: var(--muted);
-            font-size: 0.88rem;
-            line-height: 1.5;
+            font-size: 0.76rem;
+            line-height: 1.35;
         }
 
         #chat-panel {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        #voice-panel {
             display: flex;
             flex-direction: column;
             min-height: 0;
@@ -525,16 +562,23 @@
         }
 
         #controls {
-            border-radius: 30px;
+            flex: 1;
+            border-radius: 0;
             padding: 18px 20px 22px;
             display: grid;
-            grid-template-columns: 1fr auto 1fr;
+            grid-template-columns: 1fr;
             align-items: center;
             gap: 16px;
+            background: transparent;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+            border: none;
+            box-shadow: none;
         }
 
         .controls-copy {
             min-width: 0;
+            text-align: center;
         }
 
         #status {
@@ -561,6 +605,7 @@
             flex-direction: column;
             align-items: center;
             gap: 12px;
+            width: 100%;
         }
 
         .control-voice {
@@ -727,8 +772,9 @@
         }
 
         #volume-bar-wrap {
-            justify-self: end;
-            width: 180px;
+            justify-self: center;
+            width: 100%;
+            max-width: 220px;
             height: 10px;
             border-radius: 999px;
             background: rgba(148, 163, 184, 0.20);
@@ -749,18 +795,83 @@
             transition: width 0.08s linear;
         }
 
+        body.hide-chat #main-layout {
+            grid-template-columns: minmax(0, 1fr) 320px;
+        }
+
+        body.hide-chat #chat-panel {
+            display: none;
+        }
+
+        body.hide-chat #voice-panel .panel-head {
+            padding: 14px 16px 10px;
+        }
+
+        body.hide-chat #controls {
+            padding: 14px 14px 16px;
+            gap: 12px;
+        }
+
+        body.hide-chat .control-voice {
+            width: min(240px, 74vw);
+            min-height: 108px;
+        }
+
+        body.hide-chat .control-voice .voice-lines {
+            left: 20px;
+            right: 20px;
+            bottom: 20px;
+            height: 30px;
+            gap: 5px;
+        }
+
+        body.hide-chat .control-voice .voice-lines span {
+            width: 6px;
+        }
+
+        body.hide-chat #mic-button {
+            width: 78px;
+            height: 78px;
+        }
+
+        body.hide-chat #mic-button svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        body.hide-chat #volume-bar-wrap {
+            max-width: 180px;
+        }
+
+        body.hide-chat #status {
+            font-size: 0.88rem;
+        }
+
+        body.hide-chat #mic-hint {
+            font-size: 0.78rem;
+        }
+
         @media (max-width: 1040px) {
             #main-layout {
                 grid-template-columns: 1fr;
             }
 
             #camera-panel {
-                order: 2;
+                order: 1;
             }
 
             #chat-panel {
-                order: 1;
-                min-height: 52vh;
+                order: 2;
+                min-height: 38vh;
+            }
+
+            #voice-panel {
+                order: 3;
+                min-height: 260px;
+            }
+
+            body.hide-chat #main-layout {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -807,7 +918,7 @@
 <div class="app-shell">
     <header id="header">
         <div class="brand">
-            <div id="title">Medical Assistant</div>
+            <div id="title">UzMAX</div>
             <div id="subtitle"></div>
         </div>
         <div class="header-controls">
@@ -836,6 +947,13 @@
                 <span id="label-tablet-mode"></span>
                 <label class="toggle">
                     <input type="checkbox" id="toggle-tablet-mode">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            <div class="toggle-group">
+                <span id="label-hide-chat"></span>
+                <label class="toggle">
+                    <input type="checkbox" id="toggle-hide-chat">
                     <span class="slider"></span>
                 </label>
             </div>
@@ -886,44 +1004,52 @@
             </div>
             <div id="chat-container"></div>
         </section>
-    </main>
-
-    <footer id="controls">
-        <div class="controls-copy">
-            <div id="status" class="muted"></div>
-            <div id="mic-hint"></div>
-        </div>
-        <div class="mic-center">
-            <div id="live-voice-button" class="voice-hero control-voice idle" aria-label="Live voice control" role="button" tabindex="0">
-                <div class="voice-ring one"></div>
-                <div class="voice-ring two"></div>
-                <div class="voice-lines">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                    <span></span>
+        
+        <aside id="voice-panel" class="panel">
+            <div class="panel-head">
+                <div>
+                    <div id="voice-title" class="panel-title"></div>
+                    <div id="voice-note" class="panel-note"></div>
                 </div>
             </div>
-            <button id="mic-button" aria-label="Microphone">
-                <div class="mic-glow"></div>
-                <div class="mic-waves" aria-hidden="true">
-                    <span class="wave-bar"></span>
-                    <span class="wave-bar"></span>
-                    <span class="wave-bar"></span>
-                    <span class="wave-bar"></span>
-                    <span class="wave-bar"></span>
+            <div id="controls">
+                <div class="controls-copy">
+                    <div id="status" class="muted"></div>
+                    <div id="mic-hint"></div>
                 </div>
-                <svg viewBox="0 0 24 24">
-                    <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                    <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                </svg>
-            </button>
-        </div>
-        <div id="volume-bar-wrap"><div id="volume-bar"></div></div>
-    </footer>
+                <div class="mic-center">
+                    <div id="live-voice-button" class="voice-hero control-voice idle" aria-label="Live voice control" role="button" tabindex="0">
+                        <div class="voice-ring one"></div>
+                        <div class="voice-ring two"></div>
+                        <div class="voice-lines">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                    </div>
+                    <button id="mic-button" aria-label="Microphone">
+                        <div class="mic-glow"></div>
+                        <div class="mic-waves" aria-hidden="true">
+                            <span class="wave-bar"></span>
+                            <span class="wave-bar"></span>
+                            <span class="wave-bar"></span>
+                            <span class="wave-bar"></span>
+                            <span class="wave-bar"></span>
+                        </div>
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div id="volume-bar-wrap"><div id="volume-bar"></div></div>
+            </div>
+        </aside>
+    </main>
 </div>
 
 <script>
@@ -934,6 +1060,7 @@ const UI_TEXT = {
         interrupt: "Bo'lish",
         faceDetect: "Yuz detekti",
         tabletMode: "Planshet",
+        hideChat: "Chat yo'q",
         language: "Til",
         cameraTitle: "Kamera",
         cameraNote: "Yuz aniqlansa mikrofon avtomatik ishga tushadi",
@@ -949,6 +1076,8 @@ const UI_TEXT = {
         facesFound: (count) => `${count} ta yuz topildi`,
         chatTitle: "Suhbat",
         chatNote: "Qisqa va quvnoq tibbiy yordamchi",
+        voiceTitle: "Ovoz boshqaruvi",
+        voiceNote: "Faqat ovoz bilan ishlash paneli",
         micHint: "Suhbat tili tanlangan menyuga mos bo‘ladi.",
         connecting: "Ulanmoqda...",
         listening: "Tinglayapman...",
@@ -967,6 +1096,7 @@ const UI_TEXT = {
         interrupt: "Прерывать",
         faceDetect: "Face detect",
         tabletMode: "Планшет",
+        hideChat: "Скрыть чат",
         language: "Язык",
         cameraTitle: "Камера",
         cameraNote: "Микрофон включается автоматически при обнаружении лица",
@@ -982,6 +1112,8 @@ const UI_TEXT = {
         facesFound: (count) => `Найдено лиц: ${count}`,
         chatTitle: "Диалог",
         chatNote: "Короткий и бодрый медицинский ассистент",
+        voiceTitle: "Голосовое управление",
+        voiceNote: "Панель для голосового режима",
         micHint: "Язык разговора соответствует выбранному языку интерфейса.",
         connecting: "Подключение...",
         listening: "Слушаю...",
@@ -1000,6 +1132,7 @@ const UI_TEXT = {
         interrupt: "Interrupt",
         faceDetect: "Face detect",
         tabletMode: "Tablet",
+        hideChat: "Hide chat",
         language: "Language",
         cameraTitle: "Camera",
         cameraNote: "The microphone starts automatically when a face is detected",
@@ -1015,6 +1148,8 @@ const UI_TEXT = {
         facesFound: (count) => `Faces found: ${count}`,
         chatTitle: "Conversation",
         chatNote: "A short, upbeat medical assistant",
+        voiceTitle: "Voice control",
+        voiceNote: "Panel for voice-only interaction",
         micHint: "The spoken language follows the language selected in the menu.",
         connecting: "Connecting...",
         listening: "Listening...",
@@ -1053,13 +1188,14 @@ function refreshStatusText() {
 function updateStaticTexts() {
     const currentUi = ui();
     document.documentElement.lang = langSelect.value.startsWith('uz') ? 'uz' : (langSelect.value.startsWith('ru') ? 'ru' : 'en');
-    document.title = 'Medical Assistant';
-    document.getElementById('title').textContent = 'Medical Assistant';
+    document.title = 'UzMAX';
+    document.getElementById('title').textContent = 'UzMAX';
     document.getElementById('subtitle').textContent = currentUi.subtitle;
     document.getElementById('label-live').textContent = currentUi.live;
     document.getElementById('label-interrupt').textContent = currentUi.interrupt;
     document.getElementById('label-face-detect').textContent = currentUi.faceDetect;
     document.getElementById('label-tablet-mode').textContent = currentUi.tabletMode;
+    document.getElementById('label-hide-chat').textContent = currentUi.hideChat;
     document.getElementById('label-language').textContent = currentUi.language;
     document.getElementById('camera-title').textContent = currentUi.cameraTitle;
     document.getElementById('camera-note').textContent = currentUi.cameraNote;
@@ -1067,6 +1203,8 @@ function updateStaticTexts() {
     document.getElementById('camera-placeholder').textContent = currentUi.cameraPlaceholder;
     document.getElementById('chat-title').textContent = currentUi.chatTitle;
     document.getElementById('chat-note').textContent = currentUi.chatNote;
+    document.getElementById('voice-title').textContent = currentUi.voiceTitle;
+    document.getElementById('voice-note').textContent = currentUi.voiceNote;
     document.getElementById('mic-hint').textContent = currentUi.micHint;
     liveVoiceBtn.setAttribute('aria-label', currentUi.live);
 
@@ -1138,6 +1276,7 @@ const toggleLive = document.getElementById('toggle-live');
 const toggleIntr = document.getElementById('toggle-interrupt');
 const toggleFaceDetect = document.getElementById('toggle-face-detect');
 const toggleTabletMode = document.getElementById('toggle-tablet-mode');
+const toggleHideChat = document.getElementById('toggle-hide-chat');
 const cameraWidget = document.getElementById('camera-widget');
 const faceVideo = document.getElementById('face-video');
 const faceCanvas = document.getElementById('face-canvas');
@@ -1197,10 +1336,16 @@ let identifiedPerson = null;
 let voiceVisualLevel = 0;
 let voiceVisualFrame = null;
 let tabletMode = localStorage.getItem('tablet_mode') === 'true';
+let hideChat = localStorage.getItem('hide_chat') === 'true';
 
 function applyTabletMode() {
     document.body.classList.toggle('tablet-mode', tabletMode);
     toggleTabletMode.checked = tabletMode;
+}
+
+function applyHideChatMode() {
+    document.body.classList.toggle('hide-chat', hideChat);
+    toggleHideChat.checked = hideChat;
 }
 
 function animateVoiceVisualTo(targetLevel) {
@@ -1320,6 +1465,12 @@ toggleTabletMode.onchange = () => {
     tabletMode = toggleTabletMode.checked;
     localStorage.setItem('tablet_mode', String(tabletMode));
     applyTabletMode();
+};
+
+toggleHideChat.onchange = () => {
+    hideChat = toggleHideChat.checked;
+    localStorage.setItem('hide_chat', String(hideChat));
+    applyHideChatMode();
 };
 
 function faceConfig() {
@@ -1998,6 +2149,7 @@ liveVoiceBtn.onkeydown = (event) => {
 
 updateStaticTexts();
 applyTabletMode();
+applyHideChatMode();
 setFaceStatus(false);
 updatePersonCard();
 updateButtonState();
