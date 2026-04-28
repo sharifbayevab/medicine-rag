@@ -609,8 +609,8 @@
         }
 
         .control-voice {
-            width: min(320px, 78vw);
-            min-height: 132px;
+            width: min(224px, 55vw);
+            min-height: 92px;
             cursor: pointer;
             transition: transform 0.18s ease, box-shadow 0.2s ease, opacity 0.2s ease;
             display: none;
@@ -625,7 +625,7 @@
         }
 
         .control-voice .voice-lines {
-            bottom: 28px;
+            bottom: 20px;
         }
 
         .control-voice.listening {
@@ -647,8 +647,8 @@
         }
 
         #mic-button {
-            width: 94px;
-            height: 94px;
+            width: 66px;
+            height: 66px;
             border: none;
             border-radius: 50%;
             position: relative;
@@ -677,8 +677,8 @@
         }
 
         #mic-button svg {
-            width: 34px;
-            height: 34px;
+            width: 24px;
+            height: 24px;
             fill: #fff;
             position: relative;
             z-index: 2;
@@ -686,7 +686,7 @@
 
         .mic-glow {
             position: absolute;
-            inset: 14px;
+            inset: 10px;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 68%);
             z-index: 1;
@@ -698,15 +698,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 3px;
             opacity: 0;
             transition: opacity 0.2s ease;
             z-index: 1;
         }
 
         .wave-bar {
-            width: 4px;
-            height: 18px;
+            width: 3px;
+            height: 13px;
             border-radius: 999px;
             background: rgba(255, 255, 255, 0.8);
             transform-origin: center bottom;
@@ -813,30 +813,30 @@
         }
 
         body.hide-chat .control-voice {
-            width: min(240px, 74vw);
-            min-height: 108px;
+            width: min(168px, 52vw);
+            min-height: 76px;
         }
 
         body.hide-chat .control-voice .voice-lines {
-            left: 20px;
-            right: 20px;
-            bottom: 20px;
-            height: 30px;
-            gap: 5px;
+            left: 14px;
+            right: 14px;
+            bottom: 14px;
+            height: 21px;
+            gap: 4px;
         }
 
         body.hide-chat .control-voice .voice-lines span {
-            width: 6px;
+            width: 4px;
         }
 
         body.hide-chat #mic-button {
-            width: 78px;
-            height: 78px;
+            width: 55px;
+            height: 55px;
         }
 
         body.hide-chat #mic-button svg {
-            width: 28px;
-            height: 28px;
+            width: 20px;
+            height: 20px;
         }
 
         body.hide-chat #volume-bar-wrap {

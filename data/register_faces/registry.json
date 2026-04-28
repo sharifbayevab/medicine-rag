@@ -1,16 +1,6 @@
 {
   "faces": [
     {
-      "person_id": "person-sherzod-001",
-      "file": "1.png",
-      "first_name": "Sherzod Xatamovich",
-      "last_name": "Shermatov",
-      "metadata": {
-        "info": "Sherzod Khotamovich Shermatov was born on April 7, 1977, in Tashkent. From 2018 to 2021, he served as the Minister of Public Education of the Republic of Uzbekistan. From November 17, 2021, to December 30, 2022, he served as the Minister for the Development of Information Technologies and Communications. On December 30, 2022, he was appointed Minister of Digital Technologies of the Republic of Uzbekistan.\n\nIn 2017–2018, he acted as the Minister for the Development of Information Technologies and Communications of the Republic of Uzbekistan. In 2018, for a short period, he worked as Deputy Minister of Innovative Development of the Republic of Uzbekistan. From 2018 to 2021, he served as the Minister of Public Education of the Republic of Uzbekistan, and since 2021, he has been serving as the Minister for the Development of Information Technologies and Communications of the Republic of Uzbekistan.",
-        "notes": "apply officially Sherzod Xatamovich, He is our esteemed guest."
-      }
-    },
-    {
       "person_id": "person-baxtiyor-002",
       "file": "2.png",
       "first_name": "Bakhtiyor Shukhratovich",
@@ -28,6 +18,16 @@
       "metadata": {
         "info": "Head of the Artificial Intelligence Department:\nBunyod Rakhimjonovich Azimov\n\nIn accordance with Resolution No. PQ-4996 of the President of the Republic of Uzbekistan dated February 17, 2021, “On Measures to Create Conditions for the Rapid Introduction of Artificial Intelligence Technologies,” the Department of Artificial Intelligence was established on the basis of Order No. 809 of the Rector of Tashkent University of Information Technologies named after Muhammad al-Khwarizmi, dated August 18, 2021.\n\nThe department currently has a total of 16 faculty members, including 3 professors, 6 associate professors, 3 senior lecturers, and 4 assistant lecturers. During the period of 2021–2025, the department was headed by Hakimjon Nasiridinovich Zaynidinov, Doctor of Technical Sciences and Professor. Since August 27, 2025, Bunyod Rakhimjonovich Azimov, Doctor of Philosophy in Technical Sciences and Associate Professor, has been serving as the Head of the Department of Artificial Intelligence.\n\nThe department has set an important goal: to train highly qualified specialists in the field of artificial intelligence and to develop research as well as educational and methodological activities. Today, artificial intelligence is applied in nearly all areas of life. Therefore, the department offers programs covering various aspects of this field. These include courses such as machine learning, deep learning, computer vision, natural language processing, big data analytics, expert systems, and intelligent robotic systems. Each course provides not only theoretical knowledge but also teaches its real-life applications through practical training. Students and faculty members actively participate in innovative processes and master the latest trends and technologies in the field. This contributes to making young professionals more competitive in the modern labor market and to increasing the scientific and practical achievements in artificial intelligence within the country.\n\nThe department also conducts advanced research in its field. These studies are aimed at discovering new areas of application for digital technologies and at further developing the field. Through participation in innovative projects, students and faculty members study the latest trends and technologies in the industry.",
         "notes": "apply officially Bunyod Raximjonovich"
+      }
+    },
+    {
+      "person_id": "person-sharipov-004",
+      "file": "4.png",
+      "first_name": "Kongratbay",
+      "last_name": "Sharipov",
+      "metadata": {
+        "info": "Sharipov Kongratbay Avezimbetovich is an Uzbek statesman and scholar who currently serves as the Minister of Higher Education, Science and Innovation of the Republic of Uzbekistan. He was appointed to this position on February 2, 2024.\n\nHe was born on March 24, 1963, in the Kungrad District of the Republic of Karakalpakstan. He holds a Doctor of Technical Sciences degree and the academic title of Professor.\n\nBefore becoming minister, he held several senior positions in higher education. He served as Rector of the Turin Polytechnic University in Tashkent, later worked as Deputy Minister of Higher and Secondary Special Education of Uzbekistan, and from 2019 to 2024 served as Rector of the Tashkent State University of Economics.\n\nHe is publicly known for his work in the development of higher education, science, and innovation policy in Uzbekistan. In his current role, he oversees the country’s higher education system, scientific development, and innovation initiatives.",
+        "notes": "apply officially Sharipov Kongratbay Avezimbetovich"
       }
     }
   ]
